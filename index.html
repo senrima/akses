@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor CRM</title>
+    <!-- Tailwind CSS dari CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+        .scrollable-area {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .scrollable-area::-webkit-scrollbar {
+            width: 8px;
+        }
+        .scrollable-area::-webkit-scrollbar-track {
+            background: #e5e7eb; /* bg-gray-200 */
+            border-radius: 10px;
+        }
+        .scrollable-area::-webkit-scrollbar-thumb {
+            background-color: #9ca3af; /* bg-gray-400 */
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body class="flex h-screen text-gray-800 antialiased">
+
+    <!-- Panel Kiri: Daftar Percakapan -->
+    <div id="conversation-list" class="flex flex-col w-full md:w-1/3 border-r border-gray-300 bg-white scrollable-area transition-transform duration-300 ease-in-out">
+        <header class="p-4 bg-gray-50 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-600">
+                Dasbor CRM
+            </h2>
+        </header>
+        <div id="conversation-items-container">
+            <!-- Percakapan akan dimuat di sini oleh JavaScript -->
+        </div>
+    </div>
+
+    <!-- Panel Kanan: Tampilan Chat -->
+    <div id="chat-panel" class="flex-col flex-1 hidden md:flex transition-transform duration-300 ease-in-out">
+        <!-- Konten chat akan dimuat di sini oleh JavaScript -->
+        <div id="chat-content" class="flex flex-col flex-1">
+            <div class="flex items-center justify-center h-full text-gray-400">
+                Pilih percakapan untuk memulai
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data percakapan simulasi
+        const mockConversations = [
+            {
+                id: 'conv1',
+                contactName: 'Budi Santoso',
+                channel: 'whatsapp',
+                messages: [
+                    { id: 'msg1-1', sender: 'Budi Santoso', text: 'Halo, saya mau tanya tentang produk A.', timestamp: '14:30', isAgent: false },
+                    { id: 'msg1-2', sender: 'Agent', text: 'Selamat siang, ada yang bisa saya bantu?', timestamp: '14:31', isAgent: true },
+                    { id: 'msg1-3', sender: 'Budi Santoso', text: 'Apakah produk A tersedia dalam warna biru?', timestamp: '14:35', isAgent: false },
+                ],
+            },
+            {
+                id: 'conv2',
+                contactName: 'Anisa Putri',
+                channel: 'telegram',
+                messages: [
+                    { id: 'msg2-1', sender: 'Anisa Putri', text: 'Pemesanan saya sudah sampai mana ya?', timestamp: '11:15', isAgent: false },
+                    { id: 'msg2-2', sender: 'Agent', text: 'Mohon info nomor pesanannya, Anisa.', timestamp: '11:16', isAgent: true },
+                ],
+            },
+            {
+                id: 'conv3',
+                contactName: 'PT. Maju Bersama',
+                channel: 'email',
+                messages: [
+                    { id: 'msg3-1', sender: 'PT. Maju Bersama', text: 'Perihal: Penawaran kerjasama. Kami tertarik dengan produk B...', timestamp: '09:00', isAgent: false },
+                    { id: 'msg3-2', sender: 'Agent', text: 'Terima kasih atas emailnya, akan kami tindak lanjuti.', timestamp: '09:05', isAgent: true },
+                ],
+            },
+        ];
+
+        let conversations = [...mockConversations];
+        let selectedConversationId = 'conv1';
+        let isLoading = true;
+        
+        // =========================================================================
+        // BAGIAN INI UNTUK KONEKSI GOOGLE APPS SCRIPT
+        // Silakan ganti URL di bawah dengan URL Web App Apps Script Anda
+        // =========================================================================
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_xxxxxxxxxxxxxxxxxxxxxxxxxx/exec'; // Ganti dengan URL Anda
+
+        // Fungsi untuk mengambil data percakapan dari Google Apps Script
+        const fetchConversations = async () => {
+            isLoading = true;
+            try {
+                const response = await fetch(`${GAS_WEB_APP_URL}?action=getConversations`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                conversations = data.conversations || [];
+            } catch (error) {
+                console.error('Gagal mengambil data dari Google Sheets:', error);
+                // Jika gagal, gunakan data mock
+                conversations = [...mockConversations];
+            } finally {
+                isLoading = false;
+            }
+        };
+
+        // Fungsi untuk mengirim pesan baru ke Google Apps Script
+        const sendMessageToGAS = async (messageData) => {
+            try {
+                await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Penting untuk menghindari masalah CORS
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: JSON.stringify({
+                        action: 'sendMessage',
+                        ...messageData,
+                    }),
+                });
+            } catch (error) {
+                console.error('Gagal mengirim pesan ke Google Sheets:', error);
+            }
+        };
+
+        // Ikon Channel (SVG)
+        const getChannelIcon = (channel) => {
+            switch (channel) {
+                case 'whatsapp':
+                    return `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    `;
+                case 'telegram':
+                    return `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500">
+                          <path d="M15 10l-4 4l6 6l4-16l-18 7l4 2l2 6l3-4"></path>
+                        </svg>
+                    `;
+                case 'email':
+                    return `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-600">
+                          <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                          <path d="M22 6L12 13L2 6"></path>
+                        </svg>
+                    `;
+                default:
+                    return '';
+            }
+        };
+
+        // Ikon Kembali (SVG)
+        const getBackIcon = () => `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        `;
+
+        // Fungsi untuk merender daftar percakapan
+        const renderConversationList = () => {
+            const container = document.getElementById('conversation-items-container');
+            container.innerHTML = '';
+            
+            if (isLoading) {
+                container.innerHTML = `<div class="p-4 text-center text-gray-400">Memuat data...</div>`;
+                return;
+            }
+
+            if (conversations.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-gray-400">Tidak ada percakapan</div>`;
+                return;
+            }
+
+            conversations.forEach(conv => {
+                const lastMessage = conv.messages[conv.messages.length - 1];
+                const isSelected = conv.id === selectedConversationId;
+                const conversationItem = document.createElement('div');
+                conversationItem.className = `flex items-center p-4 cursor-pointer border-b border-gray-300 transition-colors ${isSelected ? 'bg-gray-200' : 'hover:bg-gray-100'}`;
+                conversationItem.innerHTML = `
+                    <div class="flex-shrink-0 mr-3">${getChannelIcon(conv.channel)}</div>
+                    <div class="flex-1 overflow-hidden">
+                        <h4 class="text-gray-800 text-md font-semibold truncate">${conv.contactName}</h4>
+                        <p class="text-gray-500 text-sm truncate">${lastMessage.text}</p>
+                    </div>
+                    <span class="text-gray-500 text-xs ml-auto">${lastMessage.timestamp}</span>
+                `;
+                conversationItem.addEventListener('click', () => {
+                    selectedConversationId = conv.id;
+                    renderApp();
+                    // Sembunyikan daftar percakapan di mobile saat diklik
+                    if (window.innerWidth < 768) {
+                        document.getElementById('conversation-list').classList.add('hidden');
+                        document.getElementById('chat-panel').classList.remove('hidden');
+                    }
+                });
+                container.appendChild(conversationItem);
+            });
+        };
+
+        // Fungsi untuk merender panel chat
+        const renderChatPanel = () => {
+            const chatPanel = document.getElementById('chat-panel');
+            const selectedConversation = conversations.find(conv => conv.id === selectedConversationId);
+            
+            if (!selectedConversation) {
+                chatPanel.innerHTML = `
+                    <div id="chat-content" class="flex flex-col flex-1">
+                        <div class="flex items-center justify-center h-full text-gray-400">
+                            Pilih percakapan untuk memulai
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let chatHtml = `
+                <!-- Header Chat -->
+                <header class="p-4 bg-white border-b border-gray-300 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <button id="back-button" class="md:hidden p-2 rounded-full hover:bg-gray-200 transition-colors">
+                            ${getBackIcon()}
+                        </button>
+                        ${getChannelIcon(selectedConversation.channel)}
+                        <h3 class="text-lg font-bold text-gray-800">${selectedConversation.contactName}</h3>
+                    </div>
+                </header>
+
+                <!-- Area Pesan -->
+                <div id="messages-container" class="flex-1 bg-gray-50 scrollable-area p-6 space-y-4">
+                    ${selectedConversation.messages.map(msg => `
+                        <div class="flex items-start ${msg.isAgent ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-md p-3 rounded-xl shadow-md ${
+                                msg.isAgent
+                                    ? 'bg-cyan-500 text-white rounded-br-none'
+                                    : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
+                            }">
+                                <p class="text-sm break-words">${msg.text}</p>
+                                <span class="block text-right text-xs text-gray-500 mt-1">${msg.timestamp}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <!-- Form Input Pesan -->
+                <footer class="p-4 bg-white border-t border-gray-300">
+                    <form id="message-form" class="flex items-center gap-3">
+                        <input
+                            type="text"
+                            id="message-input"
+                            class="flex-1 p-3 rounded-full bg-gray-100 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                            placeholder="Kirim balasan..."
+                        />
+                        <button
+                            type="submit"
+                            class="p-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-full shadow-lg hover:from-teal-600 hover:to-cyan-600 transition-all duration-200"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </button>
+                    </form>
+                </footer>
+            `;
+
+            chatPanel.innerHTML = chatHtml;
+            
+            // Tambahkan event listener setelah elemen dibuat
+            document.getElementById('message-form').addEventListener('submit', handleSendMessage);
+            const backButton = document.getElementById('back-button');
+            if (backButton) {
+                backButton.addEventListener('click', handleBackToConversations);
+            }
+            
+            // Auto-scroll ke bawah saat pesan baru dimuat
+            const messagesContainer = document.getElementById('messages-container');
+            if (messagesContainer) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        };
+
+        // Fungsi untuk mengirim pesan
+        const handleSendMessage = async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('message-input');
+            const newMessageText = input.value.trim();
+            if (newMessageText === '') return;
+
+            const selectedConversation = conversations.find(conv => conv.id === selectedConversationId);
+            if (selectedConversation) {
+                const messageData = {
+                    conversationId: selectedConversation.id,
+                    text: newMessageText,
+                    sender: 'Agent',
+                    timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                };
+                
+                // Panggil fungsi untuk mengirim pesan ke GAS
+                await sendMessageToGAS(messageData);
+                
+                // Tambahkan pesan ke tampilan secara langsung
+                selectedConversation.messages.push({
+                    ...messageData,
+                    isAgent: true,
+                });
+            }
+
+            input.value = '';
+            renderApp();
+        };
+
+        // Fungsi untuk kembali ke daftar percakapan
+        const handleBackToConversations = () => {
+            document.getElementById('conversation-list').classList.remove('hidden');
+            document.getElementById('chat-panel').classList.add('hidden');
+        };
+
+        // Fungsi utama untuk merender seluruh aplikasi
+        const renderApp = async () => {
+            // Hanya ambil data dari GAS jika belum dimuat
+            if (conversations.length === 0 || isLoading) {
+                await fetchConversations();
+            }
+            renderConversationList();
+            renderChatPanel();
+        };
+
+        // Jalankan aplikasi saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', renderApp);
+
+        // Tambahkan event listener untuk penyesuaian tata letak saat ukuran jendela diubah
+        window.addEventListener('resize', () => {
+            const isMobile = window.innerWidth < 768;
+            const conversationList = document.getElementById('conversation-list');
+            const chatPanel = document.getElementById('chat-panel');
+
+            if (!isMobile) {
+                conversationList.classList.remove('hidden');
+                chatPanel.classList.remove('hidden');
+            } else {
+                const selectedConvId = conversations.find(conv => conv.id === selectedConversationId) ? selectedConversationId : null;
+                if (selectedConvId) {
+                    conversationList.classList.add('hidden');
+                    chatPanel.classList.remove('hidden');
+                } else {
+                    conversationList.classList.remove('hidden');
+                    chatPanel.classList.add('hidden');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
