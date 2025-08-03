@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor CRM - Telegram</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .scrollable-area { overflow-y: auto; }
+    </style>
+</head>
+<body class="flex h-screen text-gray-800 antialiased">
+
+    <div id="conversation-list" class="flex flex-col w-full md:w-1/3 border-r border-gray-300 bg-white scrollable-area">
+        <header class="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-500"><path d="M15 10l-4 4l6 6l4-16l-18 7l4 2l2 6l3-4"></path></svg>
+            <h2 class="text-xl font-bold text-blue-600">Dasbor Telegram</h2>
+        </header>
+        <div id="conversation-items-container"><div class="p-4 text-center text-gray-400">Memuat data...</div></div>
+    </div>
+
+    <div id="chat-panel" class="flex-col flex-1 hidden md:flex">
+        <div class="flex items-center justify-center h-full text-gray-400">Pilih percakapan untuk memulai</div>
+    </div>
+
+    <script>
+        // GANTI DENGAN URL WEB APP ANDA SETELAH DEPLOY
+        const GAS_WEB_APP_URL = 'GANTI_DENGAN_URL_WEB_APP_ANDA';
+
+        let conversations = [];
+        let selectedConversationId = null;
+
+        // Ikon Telegram
+        const getTelegramIcon = () => `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-500"><path d="M15 10l-4 4l6 6l4-16l-18 7l4 2l2 6l3-4"></path></svg>`;
+
+        // Mengambil dan menampilkan semua data
+        async function renderApp() {
+            try {
+                const response = await fetch(`${GAS_WEB_APP_URL}?action=getConversations`);
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                conversations = data.conversations || [];
+            } catch (error) {
+                document.getElementById('conversation-items-container').innerHTML = `<div class="p-4 text-center text-red-500">Gagal memuat data: ${error.message}</div>`;
+                return;
+            }
+            renderConversationList();
+            renderChatPanel();
+        }
+
+        // Menampilkan daftar percakapan di panel kiri
+        function renderConversationList() {
+            const container = document.getElementById('conversation-items-container');
+            if (conversations.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-gray-400">Tidak ada percakapan</div>`;
+                return;
+            }
+            container.innerHTML = conversations.map(conv => {
+                const lastMessage = conv.messages[conv.messages.length - 1] || { text: 'Belum ada pesan' };
+                const isSelected = conv.conversationId === selectedConversationId;
+                const time = lastMessage.timestamp ? new Date(lastMessage.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.',':') : '';
+                return `
+                    <div class="flex items-center p-4 cursor-pointer border-b ${isSelected ? 'bg-blue-100' : 'hover:bg-gray-100'}" data-id="${conv.conversationId}">
+                        <div class="flex-shrink-0 mr-3">${getTelegramIcon()}</div>
+                        <div class="flex-1 overflow-hidden">
+                            <h4 class="font-semibold truncate">${conv.contactName}</h4>
+                            <p class="text-gray-500 text-sm truncate">${lastMessage.text}</p>
+                        </div>
+                        <span class="text-gray-500 text-xs ml-auto">${time}</span>
+                    </div>`;
+            }).join('');
+            
+            document.querySelectorAll('[data-id]').forEach(el => el.addEventListener('click', () => {
+                selectedConversationId = el.dataset.id;
+                renderChatPanel();
+                if (window.innerWidth < 768) {
+                    document.getElementById('conversation-list').classList.add('hidden');
+                    document.getElementById('chat-panel').classList.remove('hidden');
+                }
+            }));
+        }
+        
+        // Menampilkan detail chat di panel kanan
+        function renderChatPanel() {
+            const chatPanel = document.getElementById('chat-panel');
+            const selectedConv = conversations.find(c => c.conversationId === selectedConversationId);
+            if (!selectedConv) return;
+            chatPanel.innerHTML = `
+                <header class="p-4 bg-white border-b flex items-center gap-3">
+                    <button id="back-button" class="md:hidden p-2 rounded-full hover:bg-gray-200">&lt;</button>
+                    ${getTelegramIcon()}
+                    <h3 class="text-lg font-bold">${selectedConv.contactName}</h3>
+                </header>
+                <div id="messages-container" class="flex-1 bg-gray-50 scrollable-area p-6 space-y-4">
+                    ${selectedConv.messages.map(msg => {
+                        const time = new Date(msg.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.',':');
+                        return `
+                        <div class="flex items-start ${msg.isAgent ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-md p-3 rounded-xl shadow-sm ${msg.isAgent ? 'bg-blue-500 text-white' : 'bg-white border'}">
+                                <p class="text-sm break-words">${msg.text}</p>
+                                <span class="block text-right text-xs mt-1 ${msg.isAgent ? 'text-blue-100' : 'text-gray-400'}">${time}</span>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+                <footer class="p-4 bg-white border-t">
+                    <form id="message-form" class="flex items-center gap-3">
+                        <input type="text" id="message-input" class="flex-1 p-3 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Kirim balasan..." autocomplete="off" />
+                        <button type="submit" class="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600">Kirim</button>
+                    </form>
+                </footer>`;
+            
+            document.getElementById('message-form').addEventListener('submit', handleSendMessage);
+            document.getElementById('back-button').addEventListener('click', () => {
+                document.getElementById('conversation-list').classList.remove('hidden');
+                document.getElementById('chat-panel').classList.add('hidden');
+            });
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Mengirim balasan dari agen
+        async function handleSendMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text || !selectedConversationId) return;
+
+            // Optimistic UI update
+            const conv = conversations.find(c => c.conversationId === selectedConversationId);
+            conv.messages.push({ text: text, sender: 'Agent', timestamp: new Date(), isAgent: true });
+            renderChatPanel();
+            input.value = '';
+
+            await fetch(GAS_WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'chatAgentReply', conversationId: selectedConversationId, text: text }),
+            });
+        }
+        
+        // Inisialisasi aplikasi
+        document.addEventListener('DOMContentLoaded', () => {
+            renderApp();
+            setInterval(renderApp, 30000); // Auto-refresh setiap 30 detik
+        });
+    </script>
+</body>
+</html>
