@@ -56,10 +56,18 @@
                 container.innerHTML = `<div class="p-4 text-center text-gray-400">Tidak ada percakapan</div>`;
                 return;
             }
+
             container.innerHTML = conversations.map(conv => {
-                const lastMessage = conv.messages[conv.messages.length - 1] || { text: 'Belum ada pesan' };
+                const lastMessage = conv.messages[conv.messages.length - 1] || { text: 'Belum ada pesan', timestamp: null };
                 const isSelected = conv.conversationId === selectedConversationId;
-                const time = lastMessage.timestamp ? new Date(lastMessage.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.',':') : '';
+                
+                // === BAGIAN YANG DIPERBAIKI ===
+                // Cek dulu apakah timestamp ada, baru format. Jika tidak, tampilkan string kosong.
+                const time = lastMessage.timestamp 
+                    ? new Date(lastMessage.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.',':') 
+                    : '';
+                // ==============================
+
                 return `
                     <div class="flex items-center p-4 cursor-pointer border-b ${isSelected ? 'bg-blue-100' : 'hover:bg-gray-100'}" data-id="${conv.conversationId}">
                         <div class="flex-shrink-0 mr-3">${getTelegramIcon()}</div>
@@ -146,5 +154,4 @@
         });
     </script>
 </body>
-
 </html>
