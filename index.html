@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uji Coba Worker API Router</title>
+    <title>Uji Coba Worker - Multi-Path</title>
     <style>
         body { font-family: sans-serif; padding: 2em; background-color: #f4f4f9; }
         .container { max-width: 700px; margin: auto; background: white; padding: 2em; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -11,18 +11,22 @@
         .btn-aset { background-color: #28a745; }
         .btn-payment { background-color: #007bff; }
         .btn-error { background-color: #dc3545; }
+        .btn-multi-path { background-color: #6f42c1; } /* Warna baru */
         pre { background-color: #e9ecef; padding: 1em; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; }
         #result { border-top: 2px solid #ccc; margin-top: 1.5em; padding-top: 1em; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Uji Coba Cloudflare Worker</h1>
-        <p>Klik tombol di bawah untuk mengirim request POST ke endpoint yang berbeda melalui worker.</p>
+        <h1>Uji Coba Worker (Multi-Path)</h1>
+        <p>Tes kemampuan worker untuk merutekan URL dengan path yang kompleks.</p>
         
-        <button id="callAset" class="btn-aset">Panggil Endpoint /aset</button>
-        <button id="callPayment" class="btn-payment">Panggil Endpoint /payment</button>
-        <button id="callInvalid" class="btn-error">Panggil Endpoint /invalid</button>
+        <button id="callAset" class="btn-aset">Panggil /aset</button>
+        <button id="callPayment" class="btn-payment">Panggil /payment</button>
+        
+        <button id="callMultiPath" class="btn-multi-path">Panggil /aset/v1/detail/123</button>
+
+        <button id="callInvalid" class="btn-error">Panggil /invalid</button>
 
         <div id="result">
             <h2>Hasil:</h2>
@@ -34,20 +38,21 @@
         const workerBaseUrl = 'https://akses.s-tools.id'; // <-- GANTI DENGAN URL WORKER ANDA
         const responseArea = document.getElementById('response-area');
 
-        async function callApi(endpoint) {
+        async function callApi(path) {
             responseArea.textContent = 'Mengirim request...';
             try {
-                const url = `${workerBaseUrl}/${endpoint}`;
+                // Hapus '/' di awal jika ada, untuk menghindari //
+                const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+                const url = `${workerBaseUrl}/${cleanPath}`;
+
                 const dummyData = {
-                    userId: 'user123',
+                    userId: 'user-test-456',
                     timestamp: new Date().getTime()
                 };
 
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dummyData)
                 });
 
@@ -61,7 +66,8 @@
 
         document.getElementById('callAset').addEventListener('click', () => callApi('aset'));
         document.getElementById('callPayment').addEventListener('click', () => callApi('payment'));
-        document.getElementById('callInvalid').addEventListener('click', () => callApi('invalid'));
+        document.getElementById('callMultiPath').addEventListener('click', () => callApi('aset/v1/detail/123'));
+        document.getElementById('callInvalid').addEventListener('click', () => callApi('invalid/path'));
     </script>
 </body>
 </html>
