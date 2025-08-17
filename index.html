@@ -3,207 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dasbor CRM - Telegram</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Uji Coba Worker API Router</title>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .scrollable-area { overflow-y: auto; }
-        .scrollable-area::-webkit-scrollbar { width: 8px; }
-        .scrollable-area::-webkit-scrollbar-track { background: #e5e7eb; border-radius: 10px; }
-        .scrollable-area::-webkit-scrollbar-thumb { background-color: #9ca3af; border-radius: 10px; border: 2px solid #e5e7eb; }
+        body { font-family: sans-serif; padding: 2em; background-color: #f4f4f9; }
+        .container { max-width: 700px; margin: auto; background: white; padding: 2em; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        button { padding: 10px 15px; font-size: 16px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; color: white; }
+        .btn-aset { background-color: #28a745; }
+        .btn-payment { background-color: #007bff; }
+        .btn-error { background-color: #dc3545; }
+        pre { background-color: #e9ecef; padding: 1em; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; }
+        #result { border-top: 2px solid #ccc; margin-top: 1.5em; padding-top: 1em; }
     </style>
 </head>
-<body class="flex h-screen text-gray-800 antialiased">
+<body>
+    <div class="container">
+        <h1>Uji Coba Cloudflare Worker</h1>
+        <p>Klik tombol di bawah untuk mengirim request POST ke endpoint yang berbeda melalui worker.</p>
+        
+        <button id="callAset" class="btn-aset">Panggil Endpoint /aset</button>
+        <button id="callPayment" class="btn-payment">Panggil Endpoint /payment</button>
+        <button id="callInvalid" class="btn-error">Panggil Endpoint /invalid</button>
 
-    <div id="conversation-list" class="flex flex-col w-full md:w-1/3 border-r border-gray-300 bg-white scrollable-area">
-        <header class="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-500"><path d="M15 10l-4 4l6 6l4-16l-18 7l4 2l2 6l3-4"></path></svg>
-            <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500">
-                Dasbor Telegram
-            </h2>
-        </header>
-        <div id="conversation-items-container">
-            <div class="p-4 text-center text-gray-400">Memuat data...</div>
-        </div>
-    </div>
-
-    <div id="chat-panel" class="flex-col flex-1 hidden md:flex">
-        <div id="chat-content" class="flex flex-col flex-1">
-            <div class="flex items-center justify-center h-full text-gray-400">Pilih percakapan untuk memulai</div>
+        <div id="result">
+            <h2>Hasil:</h2>
+            <pre id="response-area">Hasil request akan ditampilkan di sini...</pre>
         </div>
     </div>
 
     <script>
-        // =========================================================================
-        // PENGATURAN - GANTI URL INI DENGAN URL WEB APP ANDA
-        // =========================================================================
-        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby-cGE7gjZjW715w0tkJbDlihqcZ5WX_ULJftsLQFv6eARb1QYmW000pBqHarp1h2fIVA/exec'; // <--- GANTI INI
+        const workerBaseUrl = 'https://akses.s-tools.id'; // <-- GANTI DENGAN URL WORKER ANDA
+        const responseArea = document.getElementById('response-area');
 
-        let conversations = [];
-        let selectedConversationId = null;
-        let isLoading = true;
-
-        // Fungsi untuk mengambil data percakapan dari Google Apps Script
-        const fetchConversations = async () => {
-            isLoading = true;
+        async function callApi(endpoint) {
+            responseArea.textContent = 'Mengirim request...';
             try {
-                const response = await fetch(`${GAS_WEB_APP_URL}?action=getConversations`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-                // Filter hanya untuk percakapan dari Telegram
-                conversations = (data.conversations || []).filter(c => c.channel === 'telegram');
-            } catch (error) {
-                console.error('Gagal mengambil data dari Google Sheets:', error);
-                document.getElementById('conversation-items-container').innerHTML = `<div class="p-4 text-center text-red-500">Gagal memuat data. Periksa URL Web App dan pastikan sheet sudah benar.</div>`;
-            } finally {
-                isLoading = false;
-            }
-        };
+                const url = `${workerBaseUrl}/${endpoint}`;
+                const dummyData = {
+                    userId: 'user123',
+                    timestamp: new Date().getTime()
+                };
 
-        // Fungsi untuk mengirim pesan baru ke Google Apps Script
-        const sendMessageToGAS = async (messageData) => {
-            try {
-                const response = await fetch(GAS_WEB_APP_URL, {
+                const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'chatAgentReply',
-                        ...messageData,
-                    }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dummyData)
                 });
+
                 const result = await response.json();
-                if (result.error) throw new Error(result.error);
-                console.log('Pesan berhasil dikirim ke backend:', result.message);
+                responseArea.textContent = JSON.stringify(result, null, 2);
+
             } catch (error) {
-                console.error('Gagal mengirim pesan ke GAS:', error);
-                alert(`Gagal mengirim pesan: ${error.message}`);
+                responseArea.textContent = `Terjadi Error: ${error.message}`;
             }
-        };
+        }
 
-        // Ikon khusus untuk Telegram
-        const getTelegramIcon = () => `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-500"><path d="M15 10l-4 4l6 6l4-16l-18 7l4 2l2 6l3-4"></path></svg>`;
-        const getBackIcon = () => `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
-
-        const renderConversationList = () => {
-            const container = document.getElementById('conversation-items-container');
-            if (isLoading) return;
-            if (conversations.length === 0) {
-                container.innerHTML = `<div class="p-4 text-center text-gray-400">Tidak ada percakapan Telegram</div>`;
-                return;
-            }
-            container.innerHTML = conversations.map(conv => {
-                const lastMessage = conv.messages[conv.messages.length - 1] || { text: 'Belum ada pesan', timestamp: '' };
-                const isSelected = conv.conversationId === selectedConversationId;
-                return `
-                    <div class="flex items-center p-4 cursor-pointer border-b border-gray-300 transition-colors ${isSelected ? 'bg-gray-200' : 'hover:bg-gray-100'}" data-id="${conv.conversationId}">
-                        <div class="flex-shrink-0 mr-3">${getTelegramIcon()}</div>
-                        <div class="flex-1 overflow-hidden">
-                            <h4 class="text-gray-800 text-md font-semibold truncate">${conv.contactName}</h4>
-                            <p class="text-gray-500 text-sm truncate">${lastMessage.text}</p>
-                        </div>
-                        <span class="text-gray-500 text-xs ml-auto">${new Date(lastMessage.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.',':')}</span>
-                    </div>`;
-            }).join('');
-            document.querySelectorAll('[data-id]').forEach(el => el.addEventListener('click', () => {
-                selectedConversationId = el.dataset.id;
-                renderApp();
-                if (window.innerWidth < 768) {
-                    document.getElementById('conversation-list').classList.add('hidden');
-                    document.getElementById('chat-panel').classList.remove('hidden');
-                }
-            }));
-        };
-
-        const renderChatPanel = () => {
-            const chatPanel = document.getElementById('chat-panel');
-            const selectedConv = conversations.find(c => c.conversationId === selectedConversationId);
-            if (!selectedConv) {
-                chatPanel.innerHTML = `<div class="flex items-center justify-center h-full text-gray-400">Pilih percakapan untuk memulai</div>`;
-                return;
-            }
-            chatPanel.innerHTML = `
-                <header class="p-4 bg-white border-b border-gray-300 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <button id="back-button" class="md:hidden p-2 rounded-full hover:bg-gray-200">${getBackIcon()}</button>
-                        ${getTelegramIcon()}
-                        <h3 class="text-lg font-bold text-gray-800">${selectedConv.contactName}</h3>
-                    </div>
-                </header>
-                <div id="messages-container" class="flex-1 bg-gray-50 scrollable-area p-6 space-y-4">
-                    ${selectedConv.messages.map(msg => `
-                        <div class="flex items-start ${msg.isAgent ? 'justify-end' : 'justify-start'}">
-                            <div class="max-w-md p-3 rounded-xl shadow-md ${msg.isAgent ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'}">
-                                <p class="text-sm break-words">${msg.text}</p>
-                                <span class="block text-right text-xs mt-1 ${msg.isAgent ? 'text-blue-100' : 'text-gray-400'}">${new Date(msg.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.',':')}</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <footer class="p-4 bg-white border-t border-gray-300">
-                    <form id="message-form" class="flex items-center gap-3">
-                        <input type="text" id="message-input" class="flex-1 p-3 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Kirim balasan..." autocomplete="off" />
-                        <button type="submit" class="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full shadow-lg hover:from-blue-600 hover:to-cyan-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-6 w-6"><path d="M15 10l-4 4l6 6l4-16l-18 7l4 2l2 6l3-4"></path></svg>
-                        </button>
-                    </form>
-                </footer>`;
-            document.getElementById('message-form').addEventListener('submit', handleSendMessage);
-            document.getElementById('back-button')?.addEventListener('click', handleBackToConversations);
-            const messagesContainer = document.getElementById('messages-container');
-            if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        };
-
-        const handleSendMessage = async (e) => {
-            e.preventDefault();
-            const input = document.getElementById('message-input');
-            const text = input.value.trim();
-            if (text === '') return;
-
-            const conv = conversations.find(c => c.conversationId === selectedConversationId);
-            const messageData = {
-                conversationId: selectedConversationId,
-                text,
-                sender: 'Agent',
-                timestamp: new Date().toISOString(),
-            };
-            
-            conv.messages.push({ ...messageData, isAgent: true });
-            renderChatPanel();
-            input.value = '';
-
-            await sendMessageToGAS(messageData);
-        };
-        
-        const handleBackToConversations = () => {
-            document.getElementById('conversation-list').classList.remove('hidden');
-            document.getElementById('chat-panel').classList.add('hidden');
-        };
-
-        const renderApp = () => {
-            renderConversationList();
-            renderChatPanel();
-        };
-
-        const main = async () => {
-            await fetchConversations();
-            renderApp();
-            // Refresh data setiap 30 detik untuk melihat pesan baru
-            setInterval(async () => {
-                const currentSelectedId = selectedConversationId;
-                await fetchConversations();
-                selectedConversationId = currentSelectedId; // Pertahankan chat yang sedang dipilih
-                renderApp();
-            }, 30000);
-        };
-
-        document.addEventListener('DOMContentLoaded', main);
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 768) {
-                document.getElementById('conversation-list').classList.remove('hidden');
-                document.getElementById('chat-panel').classList.remove('hidden');
-            }
-        });
+        document.getElementById('callAset').addEventListener('click', () => callApi('aset'));
+        document.getElementById('callPayment').addEventListener('click', () => callApi('payment'));
+        document.getElementById('callInvalid').addEventListener('click', () => callApi('invalid'));
     </script>
 </body>
 </html>
-
