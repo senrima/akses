@@ -18,15 +18,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>Uji Coba Worker (Multi-Path)</h1>
-        <p>Tes kemampuan worker untuk merutekan URL dengan path yang kompleks.</p>
+        <h1>Uji Coba Worker (URL Parameter)</h1>
+        <p>Tes kemampuan worker untuk menangani parameter di URL.</p>
         
         <button id="callAset" class="btn-aset">Panggil /aset</button>
-        <button id="callPayment" class="btn-payment">Panggil /payment</button>
-        
         <button id="callMultiPath" class="btn-multi-path">Panggil /aset/v1/detail/123</button>
 
-        <button id="callInvalid" class="btn-error">Panggil /invalid</button>
+        <button id="callWithParam" class="btn-param">Panggil /aset/v1/search?id=100&type=premium</button>
 
         <div id="result">
             <h2>Hasil:</h2>
@@ -38,17 +36,12 @@
         const workerBaseUrl = 'https://akses.s-tools.id'; // <-- GANTI DENGAN URL WORKER ANDA
         const responseArea = document.getElementById('response-area');
 
-        async function callApi(path) {
+        async function callApi(fullPath) {
             responseArea.textContent = 'Mengirim request...';
             try {
-                // Hapus '/' di awal jika ada, untuk menghindari //
-                const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-                const url = `${workerBaseUrl}/${cleanPath}`;
+                const url = `${workerBaseUrl}${fullPath}`; // Langsung gunakan path lengkap
 
-                const dummyData = {
-                    userId: 'user-test-456',
-                    timestamp: new Date().getTime()
-                };
+                const dummyData = { request_source: 'frontend-test' };
 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -64,10 +57,9 @@
             }
         }
 
-        document.getElementById('callAset').addEventListener('click', () => callApi('aset'));
-        document.getElementById('callPayment').addEventListener('click', () => callApi('payment'));
-        document.getElementById('callMultiPath').addEventListener('click', () => callApi('aset/v1/detail/123'));
-        document.getElementById('callInvalid').addEventListener('click', () => callApi('invalid/path'));
+        document.getElementById('callAset').addEventListener('click', () => callApi('/aset'));
+        document.getElementById('callMultiPath').addEventListener('click', () => callApi('/aset/v1/detail/123'));
+        document.getElementById('callWithParam').addEventListener('click', () => callApi('/aset/v1/search?id=100&type=premium'));
     </script>
 </body>
 </html>
