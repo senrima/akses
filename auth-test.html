@@ -2,75 +2,142 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba Otentikasi via Worker</title>
+    <title>Verifikasi Akses Produk</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; text-align: center; }
         .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 400px; }
-        input { width: 100%; padding: 10px; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; border: none; border-radius: 4px; color: white; background-color: #007bff; cursor: pointer; font-size: 16px; }
-        pre { background-color: #e9ecef; padding: 1rem; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; }
-        .success { color: green; }
-        .error { color: red; }
+        input, button { width: 100%; padding: 12px; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+        button { border: none; color: white; cursor: pointer; }
+        #openProductBtn { background-color: #6c757d; cursor: not-allowed; }
+        #openProductBtn:not(:disabled) { background-color: #28a745; cursor: pointer; }
+        #emailCheckBtn { background-color: #007bff; }
+        .message { min-height: 60px; padding: 10px; border-radius: 4px; margin-top: 1rem; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Verifikasi Sesi Pengguna</h2>
-        <p>Masukkan token sesi Anda untuk diverifikasi melalui endpoint terpusat.</p>
-        <input type="text" id="tokenInput" placeholder="Masukkan token sesi di sini...">
-        <button id="verifyBtn">Verifikasi Token</button>
-        <pre id="resultArea">Hasil akan ditampilkan di sini...</pre>
+        <h2>Verifikasi Akses</h2>
+        <div id="email-form">
+            <p>Masukkan email Anda untuk memeriksa akses, atau akses via link dari dashboard.</p>
+            <input type="email" id="emailInput" placeholder="Masukkan email terdaftar...">
+            <button id="emailCheckBtn">Cek Akses via Email</button>
+        </div>
+        
+        <button id="openProductBtn" disabled>Buka Produk</button>
+        
+        <div id="messageArea" class="message"></div>
     </div>
 
     <script>
-        const verifyBtn = document.getElementById('verifyBtn');
-        const tokenInput = document.getElementById('tokenInput');
-        const resultArea = document.getElementById('resultArea');
+        // --- KONFIGURASI ---
+        const authUrl = 'https://akses.s-tools.id/auth/v1'; // URL Worker Anda
+        const apiKey = 'APIKEYRAHASIAUNTUKVERIFIKASITOKEN'; // API Key GAS Anda
 
-        // URL Worker Anda untuk otentikasi
-        const authUrl = 'https://akses.s-tools.id/auth/v1';
+        // --- ELEMEN UI ---
+        const emailForm = document.getElementById('email-form');
+        const emailInput = document.getElementById('emailInput');
+        const emailCheckBtn = document.getElementById('emailCheckBtn');
+        const openProductBtn = document.getElementById('openProductBtn');
+        const messageArea = document.getElementById('messageArea');
 
-        // API Key yang harus sama dengan yang ada di GAS
-        const apiKey = 'APIKEYRAHASIAUNTUKVERIFIKASITOKEN';
+        // --- FUNGSI UTAMA ---
+        
+        // Fungsi untuk mengirim request ke backend
+        async function callAuthApi(action, data) {
+            const response = await fetch(authUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ apiKey, action, data })
+            });
+            return await response.json();
+        }
 
-        async function verifyToken() {
-            const token = tokenInput.value.trim();
-            if (!token) {
-                resultArea.textContent = 'Error: Token tidak boleh kosong.';
-                resultArea.className = 'error';
-                return;
+        // Fungsi jika otentikasi berhasil
+        function grantAccess(token) {
+            // 3. Simpan token ke penyimpanan sesi
+            sessionStorage.setItem('sessionToken', token);
+            
+            messageArea.className = 'message success';
+            messageArea.innerHTML = '<strong>Akses Diterima!</strong><br>Anda akan diarahkan ke halaman produk.';
+            emailForm.style.display = 'none'; // Sembunyikan form email
+            openProductBtn.disabled = false;
+            
+            // Otomatis buka produk setelah 2 detik
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        }
+
+        // Fungsi jika otentikasi gagal
+        function denyAccess(message) {
+            sessionStorage.removeItem('sessionToken');
+            messageArea.className = 'message error';
+            messageArea.innerHTML = `<strong>Akses Ditolak!</strong><br>${message}`;
+            openProductBtn.disabled = true;
+        }
+
+        // --- ALUR KERJA ---
+
+        // Fungsi inisialisasi yang berjalan saat halaman dimuat
+        async function initialize() {
+            // 3. Hapus token lama untuk memulai sesi baru
+            sessionStorage.removeItem('sessionToken');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+            const reason = urlParams.get('reason');
+
+            if (reason === 'unauthorized') {
+                denyAccess("Anda harus memiliki sesi valid untuk mengakses halaman tersebut.");
             }
 
-            resultArea.textContent = 'Memverifikasi...';
-            resultArea.className = '';
-
-            try {
-                const response = await fetch(authUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        apiKey: apiKey,
-                        token: token
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.status === 'sukses') {
-                    resultArea.className = 'success';
-                    resultArea.textContent = 'Verifikasi Berhasil:\n\n' + JSON.stringify(result.data, null, 2);
-                } else {
-                    resultArea.className = 'error';
-                    resultArea.textContent = 'Verifikasi Gagal:\n\n' + result.message;
+            // 1. Pengecekan token dari parameter URL
+            if (tokenFromUrl) {
+                messageArea.textContent = 'Memverifikasi token dari URL...';
+                emailForm.style.display = 'none';
+                try {
+                    const result = await callAuthApi('verify_token', { token: tokenFromUrl });
+                    if (result.status === 'sukses') {
+                        grantAccess(tokenFromUrl); // Berikan akses dengan token dari URL
+                    } else {
+                        denyAccess(result.message);
+                    }
+                } catch (error) {
+                    denyAccess(error.message);
                 }
-
-            } catch (error) {
-                resultArea.className = 'error';
-                resultArea.textContent = 'Terjadi kesalahan jaringan:\n\n' + error.message;
             }
         }
 
-        verifyBtn.addEventListener('click', verifyToken);
+        // 2. Event listener untuk pengecekan via email
+        emailCheckBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            if (!email) {
+                denyAccess("Email tidak boleh kosong.");
+                return;
+            }
+            messageArea.textContent = `Mengecek email ${email}...`;
+            try {
+                const result = await callAuthApi('get_token_by_email', { email: email });
+                if (result.status === 'sukses' && result.data.token) {
+                    // Jika sukses, GAS akan mengembalikan token. Gunakan token itu untuk memberi akses.
+                    grantAccess(result.data.token);
+                } else {
+                    denyAccess(result.message);
+                }
+            } catch (error) {
+                denyAccess(error.message);
+            }
+        });
+
+        // 4. Event listener untuk tombol Buka Produk
+        openProductBtn.addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        // Jalankan inisialisasi saat halaman selesai dimuat
+        window.onload = initialize;
     </script>
 </body>
 </html>
