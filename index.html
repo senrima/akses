@@ -17,14 +17,14 @@
     </style>
     <script>
         // Ambil token dari penyimpanan sesi browser
-        const sessionToken = sessionStorage.getItem('sessionToken');
+   //     const sessionToken = sessionStorage.getItem('sessionToken');
 
         // Jika tidak ada token, jangan tampilkan halaman ini.
         // Langsung arahkan kembali ke halaman otentikasi.
-        if (!sessionToken) {
+    //    if (!sessionToken) {
             // Tambahkan parameter ?reason=unauthorized agar halaman auth tahu penyebabnya
-            window.location.href = 'auth-test.html?reason=unauthorized';
-        }
+     //       window.location.href = 'auth-test.html?reason=unauthorized';
+      //  }
     </script>
 </head>
 <body>
@@ -74,4 +74,5 @@
     </script>
 </body>
 </html>
+
 
