@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Uji Coba Otentikasi via Worker</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 400px; }
+        input { width: 100%; padding: 10px; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; border: none; border-radius: 4px; color: white; background-color: #007bff; cursor: pointer; font-size: 16px; }
+        pre { background-color: #e9ecef; padding: 1rem; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Verifikasi Sesi Pengguna</h2>
+        <p>Masukkan token sesi Anda untuk diverifikasi melalui endpoint terpusat.</p>
+        <input type="text" id="tokenInput" placeholder="Masukkan token sesi di sini...">
+        <button id="verifyBtn">Verifikasi Token</button>
+        <pre id="resultArea">Hasil akan ditampilkan di sini...</pre>
+    </div>
+
+    <script>
+        const verifyBtn = document.getElementById('verifyBtn');
+        const tokenInput = document.getElementById('tokenInput');
+        const resultArea = document.getElementById('resultArea');
+
+        // URL Worker Anda untuk otentikasi
+        const authUrl = 'https://akses.s-tools.id/auth/v1';
+
+        // API Key yang harus sama dengan yang ada di GAS
+        const apiKey = 'APIKEYRAHASIAUNTUKVERIFIKASITOKEN';
+
+        async function verifyToken() {
+            const token = tokenInput.value.trim();
+            if (!token) {
+                resultArea.textContent = 'Error: Token tidak boleh kosong.';
+                resultArea.className = 'error';
+                return;
+            }
+
+            resultArea.textContent = 'Memverifikasi...';
+            resultArea.className = '';
+
+            try {
+                const response = await fetch(authUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        token: token
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'sukses') {
+                    resultArea.className = 'success';
+                    resultArea.textContent = 'Verifikasi Berhasil:\n\n' + JSON.stringify(result.data, null, 2);
+                } else {
+                    resultArea.className = 'error';
+                    resultArea.textContent = 'Verifikasi Gagal:\n\n' + result.message;
+                }
+
+            } catch (error) {
+                resultArea.className = 'error';
+                resultArea.textContent = 'Terjadi kesalahan jaringan:\n\n' + error.message;
+            }
+        }
+
+        verifyBtn.addEventListener('click', verifyToken);
+    </script>
+</body>
+</html>
