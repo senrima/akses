@@ -24,53 +24,45 @@
             <input type="email" id="emailInput" placeholder="Masukkan email terdaftar...">
             <button id="emailCheckBtn">Cek Akses via Email</button>
         </div>
-        
         <button id="openProductBtn" disabled>Buka Produk</button>
-        
         <div id="messageArea" class="message"></div>
     </div>
 
     <script>
-        // --- KONFIGURASI ---
-        const authUrl = 'https://akses.s-tools.id/auth/v1'; // URL Worker Anda
-        const apiKey = 'APIKEYRAHASIAUNTUKVERIFIKASITOKEN'; // API Key GAS Anda
+        const authUrl = 'https://akses.s-tools.id/auth/v1'; // Pastikan URL Worker Anda Benar
+        const apiKey = 'APIKEYRAHASIAUNTUKVERIFIKASITOKEN'; // Pastikan API Key Sama dengan di GAS
 
-        // --- ELEMEN UI ---
         const emailForm = document.getElementById('email-form');
         const emailInput = document.getElementById('emailInput');
         const emailCheckBtn = document.getElementById('emailCheckBtn');
         const openProductBtn = document.getElementById('openProductBtn');
         const messageArea = document.getElementById('messageArea');
 
-        // --- FUNGSI UTAMA ---
-        
-        // Fungsi untuk mengirim request ke backend
         async function callAuthApi(action, data) {
             const response = await fetch(authUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ apiKey, action, data })
             });
-            return await response.json();
+            // Cek jika respons bukan JSON sebelum mencoba parsing
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return await response.json();
+            } else {
+                const textResponse = await response.text();
+                throw new Error("Server tidak mengembalikan JSON. Respons: " + textResponse);
+            }
         }
 
-        // Fungsi jika otentikasi berhasil
         function grantAccess(token) {
-            // 3. Simpan token ke penyimpanan sesi
             sessionStorage.setItem('sessionToken', token);
-            
             messageArea.className = 'message success';
             messageArea.innerHTML = '<strong>Akses Diterima!</strong><br>Anda akan diarahkan ke halaman produk.';
-            emailForm.style.display = 'none'; // Sembunyikan form email
+            emailForm.style.display = 'none';
             openProductBtn.disabled = false;
-            
-            // Otomatis buka produk setelah 2 detik
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
         }
 
-        // Fungsi jika otentikasi gagal
         function denyAccess(message) {
             sessionStorage.removeItem('sessionToken');
             messageArea.className = 'message error';
@@ -78,29 +70,19 @@
             openProductBtn.disabled = true;
         }
 
-        // --- ALUR KERJA ---
-
-        // Fungsi inisialisasi yang berjalan saat halaman dimuat
         async function initialize() {
-            // 3. Hapus token lama untuk memulai sesi baru
             sessionStorage.removeItem('sessionToken');
-            
             const urlParams = new URLSearchParams(window.location.search);
             const tokenFromUrl = urlParams.get('token');
             const reason = urlParams.get('reason');
-
-            if (reason === 'unauthorized') {
-                denyAccess("Anda harus memiliki sesi valid untuk mengakses halaman tersebut.");
-            }
-
-            // 1. Pengecekan token dari parameter URL
+            if (reason === 'unauthorized') denyAccess("Anda harus memiliki sesi valid untuk mengakses halaman tersebut.");
             if (tokenFromUrl) {
                 messageArea.textContent = 'Memverifikasi token dari URL...';
                 emailForm.style.display = 'none';
                 try {
                     const result = await callAuthApi('verify_token', { token: tokenFromUrl });
                     if (result.status === 'sukses') {
-                        grantAccess(tokenFromUrl); // Berikan akses dengan token dari URL
+                        grantAccess(tokenFromUrl);
                     } else {
                         denyAccess(result.message);
                     }
@@ -110,18 +92,15 @@
             }
         }
 
-        // 2. Event listener untuk pengecekan via email
         emailCheckBtn.addEventListener('click', async () => {
             const email = emailInput.value.trim();
             if (!email) {
-                denyAccess("Email tidak boleh kosong.");
-                return;
+                denyAccess("Email tidak boleh kosong."); return;
             }
             messageArea.textContent = `Mengecek email ${email}...`;
             try {
                 const result = await callAuthApi('get_token_by_email', { email: email });
                 if (result.status === 'sukses' && result.data.token) {
-                    // Jika sukses, GAS akan mengembalikan token. Gunakan token itu untuk memberi akses.
                     grantAccess(result.data.token);
                 } else {
                     denyAccess(result.message);
@@ -131,12 +110,7 @@
             }
         });
 
-        // 4. Event listener untuk tombol Buka Produk
-        openProductBtn.addEventListener('click', () => {
-            window.location.href = 'index.html';
-        });
-
-        // Jalankan inisialisasi saat halaman selesai dimuat
+        openProductBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
         window.onload = initialize;
     </script>
 </body>
