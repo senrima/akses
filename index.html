@@ -1,152 +1,67 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uji Coba Worker - Multi-Path</title>
+    <title>Area Produk - S-Tools ID</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <script>
         if (!sessionStorage.getItem('sessionToken')) {
             window.location.href = 'auth.html?reason=unauthorized';
         }
     </script>
+    
     <style>
-        /* Reset dasar & Font */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            background-color: #f8fafc;
-            color: #1e293b;
-        }
-
-        /* Header Baru */
-        .header {
-            background-color: #ffffff;
-            padding: 0 2rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 64px;
-        }
-        .header-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-        .logout-btn {
-            background-color: #ef4444;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: background-color 0.2s ease;
-        }
-        .logout-btn:hover {
-            background-color: #dc2626;
-        }
-
-        /* Konten Utama */
-        .main-content {
-            padding: 2rem;
-            max-width: 800px;
-            margin: 2rem auto;
-        }
-        .product-box {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            padding: 2rem;
-            border-radius: 12px;
-            text-align: center;
-        }
-        .welcome-message {
-            font-size: 1.75rem;
-            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc; /* Latar belakang sedikit abu-abu */
+            color: #1F2937;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-50">
 
-    <header class="header">
-        <div class="header-title">
-            Produk S-Tools
+    <header class="bg-white/90 backdrop-blur-lg sticky top-0 z-50 border-b border-gray-200">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <a href="#" class="flex items-center gap-3 text-2xl font-bold text-gray-900">
+                    <img src="https://s-tools.id/aset/stools_logo.png" alt="S-Tools ID Logo" class="h-8 w-auto">
+                    <span>S-Tools ID</span>
+                </a>
+                
+                <nav>
+                     <button id="logoutBtn" class="bg-gradient-to-r from-red-600 to-rose-500 text-white px-5 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-all transform hover:scale-105">
+                        Keluar
+                    </button>
+                </nav>
+            </div>
         </div>
-        <button id="logoutBtn" class="logout-btn">Keluar</button>
     </header>
 
-    <main class="main-content">
-        <div class="product-box">
-            <h1 class="welcome-message">Selamat Datang!</h1>
-            <p>Anda berhasil mengakses halaman produk karena memiliki sesi yang aktif.</p>
+    <main>
+        <div class="container mx-auto px-6 py-12 md:py-20">
+            <div class="bg-white p-8 md:p-12 rounded-2xl shadow-lg text-center">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900">Selamat Datang di Area Produk</h1>
+                <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                    Anda berhasil masuk. Di sini Anda dapat mengakses semua tools dan konten eksklusif yang Anda miliki.
+                </p>
+                </div>
         </div>
     </main>
-
+    
     <script>
-        // Skrip sederhana untuk fungsionalitas di dalam halaman
+        // Skrip untuk fungsionalitas tombol logout
         const logoutBtn = document.getElementById('logoutBtn');
 
         logoutBtn.addEventListener('click', () => {
-            // Hapus token dari penyimpanan sesi
             sessionStorage.removeItem('sessionToken');
-            // Arahkan kembali ke halaman login
             window.location.href = 'auth.html?reason=logout';
         });
     </script>
 
-
-    
-    <div class="container">
-        <h1>Uji Coba Worker (URL Parameter)</h1>
-        <p>Tes kemampuan worker untuk menangani parameter di URL.</p>
-        
-        <button id="callAset" class="btn-aset">Panggil /aset</button>
-        <button id="callMultiPath" class="btn-multi-path">Panggil /aset/v1/detail/123</button>
-
-        <button id="callWithParam" class="btn-param">Panggil /aset/v1/search?id=100&type=premium</button>
-
-        <div id="result">
-            <h2>Hasil:</h2>
-            <pre id="response-area">Hasil request akan ditampilkan di sini...</pre>
-        </div>
-    </div>
-
-    
-    <script>
-        const workerBaseUrl = 'https://akses.s-tools.id'; // <-- GANTI DENGAN URL WORKER ANDA
-        const responseArea = document.getElementById('response-area');
-
-        async function callApi(fullPath) {
-            responseArea.textContent = 'Mengirim request...';
-            try {
-                const url = `${workerBaseUrl}${fullPath}`; // Langsung gunakan path lengkap
-
-                const dummyData = { request_source: 'frontend-test' };
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dummyData)
-                });
-
-                const result = await response.json();
-                responseArea.textContent = JSON.stringify(result, null, 2);
-
-            } catch (error) {
-                responseArea.textContent = `Terjadi Error: ${error.message}`;
-            }
-        }
-
-        document.getElementById('callAset').addEventListener('click', () => callApi('/aset'));
-        document.getElementById('callMultiPath').addEventListener('click', () => callApi('/aset/v1/detail/123'));
-        document.getElementById('callWithParam').addEventListener('click', () => callApi('/aset/v1/search?id=100&type=premium'));
-    </script>
 </body>
 </html>
-
-
-
-
-
-
-
