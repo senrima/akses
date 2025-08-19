@@ -1,12 +1,10 @@
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Area Produk - S-Tools ID</title>
-
+    <title>Dashboard Produk - S-Tools ID</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script>
@@ -16,15 +14,12 @@
     </script>
     
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8fafc; /* Latar belakang sedikit abu-abu */
-            color: #1F2937;
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; color: #1F2937; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body>
-
+<body class="bg-gray-50">
     <header class="bg-white/90 backdrop-blur-lg sticky top-0 z-50 border-b border-gray-200">
         <div class="container mx-auto px-6 py-4">
             <div class="flex justify-between items-center">
@@ -32,7 +27,6 @@
                     <img src="https://s-tools.id/aset/stools_logo.png" alt="S-Tools ID Logo" class="h-8 w-auto">
                     <span>S-Tools ID</span>
                 </a>
-                
                 <nav>
                      <button id="logoutBtn" class="bg-gradient-to-r from-red-600 to-rose-500 text-white px-5 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-all transform hover:scale-105">
                         Keluar
@@ -43,26 +37,65 @@
     </header>
 
     <main>
-        <div class="container mx-auto px-6 py-12 md:py-20">
-            <div class="bg-white p-8 md:p-12 rounded-2xl shadow-lg text-center">
-                <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900">Selamat Datang di Area Produk</h1>
-                <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                    Anda berhasil masuk. Di sini Anda dapat mengakses semua tools dan konten eksklusif yang Anda miliki.
-                </p>
-                </div>
+        <div class="container mx-auto px-6 py-12 md:py-16">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-8">Produk Anda</h1>
+            <div id="product-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="loader"></div>
+            </div>
         </div>
     </main>
     
     <script>
-        // Skrip untuk fungsionalitas tombol logout
         const logoutBtn = document.getElementById('logoutBtn');
-
         logoutBtn.addEventListener('click', () => {
             sessionStorage.removeItem('sessionToken');
             window.location.href = 'auth.html?reason=logout';
         });
-    </script>
 
+        const authUrl = 'https://akses.s-tools.id/auth/v1';
+        const productListContainer = document.getElementById('product-list');
+
+        async function loadUserProducts() {
+            const token = sessionStorage.getItem('sessionToken');
+            try {
+                const response = await fetch(authUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_pengguna_produk', data: { token } })
+                });
+                const result = await response.json();
+                
+                if (result.status === 'sukses') {
+                    displayProducts(result.data);
+                } else {
+                    productListContainer.innerHTML = `<p class="text-red-600 col-span-full">Gagal memuat produk: ${result.message}</p>`;
+                }
+            } catch (error) {
+                productListContainer.innerHTML = `<p class="text-red-600 col-span-full">Terjadi kesalahan teknis.</p>`;
+            }
+        }
+        
+        function displayProducts(products) {
+            productListContainer.innerHTML = '';
+            if (products.length === 0) {
+                productListContainer.innerHTML = `<p class="col-span-full">Anda belum memiliki produk aktif.</p>`;
+                return;
+            }
+            products.forEach(product => {
+                const productCardHTML = `
+                    <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-start hover:shadow-lg transition-shadow">
+                        <h2 class="text-xl font-bold text-gray-800 mb-2">${product.namaProduk}</h2>
+                        <p class="text-gray-500 mb-4 flex-grow">ID: ${product.idProduk}</p>
+                        <a href="${product.idProduk}.html" class="mt-auto w-full text-center bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition">
+                            Akses Produk
+                        </a>
+                    </div>
+                `;
+                productListContainer.innerHTML += productCardHTML;
+            });
+        }
+        
+        loadUserProducts();
+    </script>
 </body>
 </html>
-
