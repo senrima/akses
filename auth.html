@@ -35,7 +35,7 @@
     <script>
         // --- KONFIGURASI ---
         const authUrl = 'https://akses.s-tools.id/auth/v1'; // URL Worker Anda
-        // const apiKey = 'APIKEYRAHASIAUNTUKVERIFIKASITOKEN'; // Aktifkan jika Anda menggunakan API Key
+        const apiKey = 'APIKEYAKSESUNTUKVERIFIKASIOTENTIKASIPRODUKTOOLS'; // Aktifkan jika Anda menggunakan API Key
 
         // --- ELEMEN UI ---
         const authForm = document.getElementById('auth-form');
@@ -48,7 +48,7 @@
 
         async function callAuthApi(action, data) {
             const payload = { action, data };
-            // if (apiKey) payload.apiKey = apiKey; // Aktifkan jika Anda menggunakan API Key
+                if (apiKey) payload.apiKey = apiKey; // Aktifkan jika Anda menggunakan API Key
             
             const response = await fetch(authUrl, {
                 method: 'POST',
@@ -127,3 +127,4 @@
     </script>
 </body>
 </html>
+
