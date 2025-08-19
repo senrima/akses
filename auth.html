@@ -33,17 +33,13 @@
     </div>
 
     <script>
-        // --- KONFIGURASI ---
-        const authUrl = 'https://akses.s-tools.id/auth/v1'; // URL Worker Anda
-        const apiKey = 'APIKEYAKSESUNTUKVERIFIKASIOTENTIKASIPRODUKTOOLS'; // Sesuaikan API Key Anda
+        const authUrl = 'https://akses.s-tools.id/auth/v1';
+        const apiKey = 'APIKEYAKSESUNTUKVERIFIKASIOTENTIKASIPRODUKTOOLS';
 
-        // --- ELEMEN UI ---
         const authForm = document.getElementById('auth-form');
         const emailInput = document.getElementById('emailInput');
         const emailCheckBtn = document.getElementById('emailCheckBtn');
         const messageArea = document.getElementById('messageArea');
-
-        // --- FUNGSI UTAMA ---
 
         async function callAuthApi(action, data) {
             const payload = { apiKey, action, data };
@@ -55,12 +51,12 @@
             return await response.json();
         }
 
-        function grantAccess(token) {
+        function grantAccess(token, redirectUrl) {
             sessionStorage.setItem('sessionToken', token);
             messageArea.className = 'message-area success';
-            messageArea.innerHTML = '<strong>Akses Diterima!</strong> Mengarahkan ke halaman produk...';
+            messageArea.innerHTML = '<strong>Akses Diterima!</strong> Mengarahkan...';
             authForm.style.display = 'none';
-            setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+            setTimeout(() => { window.location.href = redirectUrl; }, 1500);
         }
 
         function denyAccess(message) {
@@ -69,62 +65,49 @@
             messageArea.innerHTML = `<strong>Akses Ditolak!</strong><br>${message}`;
         }
 
-        // --- ALUR KERJA ---
-
         async function initialize() {
             sessionStorage.removeItem('sessionToken');
             const urlParams = new URLSearchParams(window.location.search);
+            const productTokenFromUrl = urlParams.get('tokenakses');
             const reason = urlParams.get('reason');
 
-            // Cek parameter 'tokenakses' dari URL
-            const productTokenFromUrl = urlParams.get('tokenakses');
-            
             if (reason === 'logout') {
                 messageArea.className = 'message-area info';
                 messageArea.innerHTML = "Anda telah berhasil keluar.";
                 return;
             }
-
             if (reason === 'unauthorized') {
-                denyAccess("Sesi tidak valid. Silakan verifikasi ulang akses Anda.");
+                denyAccess("Sesi tidak valid. Silakan verifikasi ulang.");
                 return;
             }
 
-            // Jika ada tokenakses di URL, jalankan alur verifikasi token produk
             if (productTokenFromUrl) {
                 messageArea.textContent = 'Memverifikasi token akses produk...';
                 authForm.style.display = 'none';
                 try {
                     const result = await callAuthApi('get_session_by_product_token', { productToken: productTokenFromUrl });
-                    if (result.status === 'sukses' && result.data.token) {
-                        grantAccess(result.data.token);
+                    if (result.status === 'sukses' && result.data.sessionToken) {
+                        const redirectUrl = `${result.data.idProduk}.html`;
+                        grantAccess(result.data.sessionToken, redirectUrl);
                     } else {
                         denyAccess(result.message);
                     }
-                } catch (error) {
-                    denyAccess(error.message);
-                }
+                } catch (error) { denyAccess(error.message); }
             }
         }
-        
-        // Event listener untuk tombol cek email
+
         emailCheckBtn.addEventListener('click', async () => {
             const email = emailInput.value.trim();
-            if (!email) {
-                denyAccess("Email tidak boleh kosong.");
-                return;
-            }
+            if (!email) { denyAccess("Email tidak boleh kosong."); return; }
             messageArea.textContent = `Mengecek email ${email}...`;
             try {
                 const result = await callAuthApi('get_token_by_email', { email });
                 if (result.status === 'sukses' && result.data.token) {
-                    grantAccess(result.data.token);
+                    grantAccess(result.data.token, 'index.html');
                 } else {
                     denyAccess(result.message);
                 }
-            } catch (error) {
-                denyAccess(error.message);
-            }
+            } catch (error) { denyAccess(error.message); }
         });
 
         window.onload = initialize;
