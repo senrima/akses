@@ -2,118 +2,87 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Verifikasi Akses Produk</title>
+    <title>Tes Minimalis ke GAS</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; text-align: center; }
-        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 400px; }
-        input, button { width: 100%; padding: 12px; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
-        button { border: none; color: white; cursor: pointer; }
-        #openProductBtn { background-color: #6c757d; cursor: not-allowed; }
-        #openProductBtn:not(:disabled) { background-color: #28a745; cursor: pointer; }
-        #emailCheckBtn { background-color: #007bff; }
-        .message { min-height: 60px; padding: 10px; border-radius: 4px; margin-top: 1rem; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
+        body { font-family: sans-serif; padding: 2rem; }
+        button { font-size: 1.2rem; padding: 10px 20px; }
+        pre { background-color: #eee; padding: 1rem; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Verifikasi Akses</h2>
-        <div id="email-form">
-            <p>Masukkan email Anda untuk memeriksa akses, atau akses via link dari dashboard.</p>
-            <input type="email" id="emailInput" placeholder="Masukkan email terdaftar...">
-            <button id="emailCheckBtn">Cek Akses via Email</button>
-        </div>
-        <button id="openProductBtn" disabled>Buka Produk</button>
-        <div id="messageArea" class="message"></div>
-    </div>
+
+    <h1>Uji Coba Koneksi Minimalis</h1>
+    <p>Halaman ini hanya akan melakukan satu panggilan API ke endpoint `/auth/v1` dengan token yang sudah ditentukan.</p>
+    <button id="testBtn">Jalankan Tes</button>
+    
+    <h2>Hasil di Console:</h2>
+    <pre id="resultArea">Buka Developer Tools (F12) dan lihat tab "Console" untuk hasil detail...</pre>
 
     <script>
-        const authUrl = 'https://akses.s-tools.id/auth/v1'; // Pastikan URL Worker Anda Benar
-   //     const apiKey = 'APIKEY'; // Pastikan API Key Sama dengan di GAS
+        // =======================================================
+        //                 KONFIGURASI PENTING
+        // =======================================================
+        
+        // 1. Ganti dengan URL Worker Anda
+        const workerUrl = 'https://akses.s-tools.id/auth/v1';
 
-        const emailForm = document.getElementById('email-form');
-        const emailInput = document.getElementById('emailInput');
-        const emailCheckBtn = document.getElementById('emailCheckBtn');
-        const openProductBtn = document.getElementById('openProductBtn');
-        const messageArea = document.getElementById('messageArea');
+        // 2. PENTING: Ganti dengan token yang VALID dan BELUM KADALUWARSA dari sheet 'Pengguna' Anda.
+        const testToken = 'GANTI_DENGAN_TOKEN_ASLI_YANG_VALID';
 
-        async function callAuthApi(action, data) {
-            const response = await fetch(authUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, data })
-            });
-            // Cek jika respons bukan JSON sebelum mencoba parsing
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.indexOf("application/json") !== -1) {
-                return await response.json();
-            } else {
-                const textResponse = await response.text();
-                throw new Error("Server tidak mengembalikan JSON. Respons: " + textResponse);
-            }
-        }
+        // =======================================================
 
-        function grantAccess(token) {
-            sessionStorage.setItem('sessionToken', token);
-            messageArea.className = 'message success';
-            messageArea.innerHTML = '<strong>Akses Diterima!</strong><br>Anda akan diarahkan ke halaman produk.';
-            emailForm.style.display = 'none';
-            openProductBtn.disabled = false;
-            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
-        }
+        const testBtn = document.getElementById('testBtn');
+        const resultArea = document.getElementById('resultArea');
 
-        function denyAccess(message) {
-            sessionStorage.removeItem('sessionToken');
-            messageArea.className = 'message error';
-            messageArea.innerHTML = `<strong>Akses Ditolak!</strong><br>${message}`;
-            openProductBtn.disabled = true;
-        }
+        async function runTest() {
+            console.clear(); // Membersihkan console setiap kali tes dijalankan
+            resultArea.textContent = "Menjalankan tes... Cek tab Console (F12).";
+            console.log("Mengirim permintaan ke:", workerUrl);
 
-        async function initialize() {
-            sessionStorage.removeItem('sessionToken');
-            const urlParams = new URLSearchParams(window.location.search);
-            const tokenFromUrl = urlParams.get('token');
-            const reason = urlParams.get('reason');
-            if (reason === 'unauthorized') denyAccess("Anda harus memiliki sesi valid untuk mengakses halaman tersebut.");
-            if (tokenFromUrl) {
-                messageArea.textContent = 'Memverifikasi token dari URL...';
-                emailForm.style.display = 'none';
-                try {
-                    const result = await callAuthApi('verify_token', { token: tokenFromUrl });
-                    if (result.status === 'sukses') {
-                        grantAccess(tokenFromUrl);
-                    } else {
-                        denyAccess(result.message);
-                    }
-                } catch (error) {
-                    denyAccess(error.message);
-                }
-            }
-        }
-
-        emailCheckBtn.addEventListener('click', async () => {
-            const email = emailInput.value.trim();
-            if (!email) {
-                denyAccess("Email tidak boleh kosong."); return;
-            }
-            messageArea.textContent = `Mengecek email ${email}...`;
             try {
-                const result = await callAuthApi('get_token_by_email', { email: email });
-                if (result.status === 'sukses' && result.data.token) {
-                    grantAccess(result.data.token);
-                } else {
-                    denyAccess(result.message);
-                }
-            } catch (error) {
-                denyAccess(error.message);
-            }
-        });
+                const response = await fetch(workerUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'verify_token',
+                        data: {
+                            token: testToken
+                        }
+                    })
+                });
 
-        openProductBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
-        window.onload = initialize;
+                console.log("Menerima respons dari server:", response);
+
+                // Coba untuk mem-parsing respons sebagai JSON
+                const result = await response.json();
+
+                // Jika berhasil, tampilkan hasilnya
+                console.log("SUKSES! Data JSON diterima:", result);
+                resultArea.textContent = "SUKSES!\n\n" + JSON.stringify(result, null, 2);
+                resultArea.style.borderColor = 'green';
+
+            } catch (error) {
+                // JIKA GAGAL PARSING JSON, INI AKAN DIJALANKAN
+                console.error("GAGAL! Terjadi error saat parsing JSON:", error);
+                
+                // Tambahan: Coba ambil respons sebagai teks untuk melihat apa isinya
+                try {
+                    // Kita buat ulang request untuk bisa membaca body-nya sebagai teks
+                    const errorResponse = await fetch(workerUrl, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'verify_token', data: { token: testToken } })
+                    });
+                    const errorText = await errorResponse.text();
+                    console.error("RAW RESPONSE (Isi Asli):", errorText);
+                    resultArea.textContent = `GAGAL! Error: ${error.message}\n\nRAW RESPONSE DARI SERVER (Ini adalah bukti masalahnya):\n\n${errorText}`;
+                } catch (e) {
+                    resultArea.textContent = `GAGAL! Error: ${error.message}. Tidak bisa mengambil Raw Response.`;
+                }
+                resultArea.style.borderColor = 'red';
+            }
+        }
+
+        testBtn.addEventListener('click', runTest);
     </script>
 </body>
 </html>
-
-
