@@ -16,14 +16,8 @@
         #result { border-top: 2px solid #ccc; margin-top: 1.5em; padding-top: 1em; }
     </style>
     <script>
-        // Ambil token dari penyimpanan sesi browser
-        const sessionToken = sessionStorage.getItem('sessionToken');
-
-        // Jika tidak ada token, jangan tampilkan halaman ini.
-        // Langsung arahkan kembali ke halaman otentikasi.
-        if (!sessionToken) {
-            // Tambahkan parameter ?reason=unauthorized agar halaman auth tahu penyebabnya
-            window.location.href = 'auth-test.html?reason=unauthorized';
+        if (!sessionStorage.getItem('sessionToken')) {
+            window.location.href = 'auth.html?reason=unauthorized';
         }
     </script>
 </head>
@@ -43,6 +37,45 @@
         </div>
     </div>
 
+
+    <h1>Halo, <span id="userName">Pengguna</span>!</h1>
+    <div id="app-content">
+        </div>
+    <button id="logoutBtn">Keluar</button>
+
+    <script>
+        (function() {
+            const authUrl = 'https://akses.s-tools.id/auth/v1';
+            const userNameEl = document.getElementById('userName');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            async function revalidateSession() {
+                const token = sessionStorage.getItem('sessionToken');
+                try {
+                    const response = await fetch(authUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'verify_token', data: { token } })
+                    });
+                    const result = await response.json();
+                    if (result.status !== 'sukses') throw new Error(result.message);
+                    
+                    userNameEl.textContent = result.data.nama || 'Pengguna';
+                } catch (error) {
+                    sessionStorage.removeItem('sessionToken');
+                    window.location.href = `auth.html?reason=invalid-token`;
+                }
+            }
+            
+            logoutBtn.addEventListener('click', () => {
+                sessionStorage.removeItem('sessionToken');
+                window.location.href = 'auth.html?reason=logout';
+            });
+
+            revalidateSession();
+        })();
+    </script>
+    
     <script>
         const workerBaseUrl = 'https://akses.s-tools.id'; // <-- GANTI DENGAN URL WORKER ANDA
         const responseArea = document.getElementById('response-area');
@@ -74,6 +107,7 @@
     </script>
 </body>
 </html>
+
 
 
 
