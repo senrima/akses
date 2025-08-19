@@ -12,8 +12,6 @@
         input, button { width: 100%; padding: 12px; margin-bottom: 1rem; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         input:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
         button { border: none; color: white; cursor: pointer; font-weight: 500; transition: background-color 0.2s; }
-        #openProductBtn { background-color: #94a3b8; cursor: not-allowed; }
-        #openProductBtn:not(:disabled) { background-color: #16a34a; cursor: pointer; }
         #emailCheckBtn { background-color: #3b82f6; }
         .message-area { min-height: 50px; padding: 12px; border-radius: 8px; margin-top: 1rem; text-align: center; }
         .success { border: 1px solid #16a34a; background-color: #f0fdf4; color: #15803d; }
@@ -28,7 +26,6 @@
             <input type="email" id="emailInput" placeholder="Contoh: nama@email.com">
             <button id="emailCheckBtn">Cek Akses via Email</button>
         </div>
-        <button id="openProductBtn" disabled>Buka Produk</button>
         <div id="messageArea" class="message-area"></div>
     </div>
 
@@ -84,7 +81,10 @@
 
             if (reason === 'unauthorized') {
                 denyAccess("Sesi tidak valid. Silakan verifikasi ulang akses Anda.");
+            } else if (reason === 'logout') {
+                denyAccess("Anda berhasil keluar dari Aplikasi");
             }
+
 
             if (tokenFromUrl) {
                 messageArea.textContent = 'Memverifikasi token dari URL...';
@@ -121,10 +121,9 @@
             }
         });
 
-        openProductBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
-
         window.onload = initialize;
     </script>
 </body>
 </html>
+
 
