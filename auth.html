@@ -17,7 +17,7 @@
         .message-area { min-height: 50px; padding: 12px; border-radius: 8px; margin-top: 1rem; text-align: center; }
         .success { border: 1px solid #16a34a; background-color: #f0fdf4; color: #15803d; }
         .error { border: 1px solid #dc2626; background-color: #fef2f2; color: #b91c1c; }
-        .info { border: 1px solid #3b82f6; background-color: #eff6ff; color: #1e40af; } /* Style baru untuk info */
+        .info { border: 1px solid #3b82f6; background-color: #eff6ff; color: #1e40af; }
     </style>
 </head>
 <body>
@@ -33,15 +33,18 @@
     </div>
 
     <script>
-        // --- KONFIGURASI & ELEMEN UI (TIDAK BERUBAH) ---
-        const authUrl = 'https://akses.s-tools.id/auth/v1';
-        const apiKey = 'APIKEYAKSESUNTUKVERIFIKASIOTENTIKASIPRODUKTOOLS';
+        // --- KONFIGURASI ---
+        const authUrl = 'https://akses.s-tools.id/auth/v1'; // URL Worker Anda
+        const apiKey = 'APIKEYAKSESUNTUKVERIFIKASIOTENTIKASIPRODUKTOOLS'; // Sesuaikan API Key Anda
+
+        // --- ELEMEN UI ---
         const authForm = document.getElementById('auth-form');
         const emailInput = document.getElementById('emailInput');
         const emailCheckBtn = document.getElementById('emailCheckBtn');
         const messageArea = document.getElementById('messageArea');
 
-        // --- FUNGSI UTAMA (TIDAK BERUBAH) ---
+        // --- FUNGSI UTAMA ---
+
         async function callAuthApi(action, data) {
             const payload = { apiKey, action, data };
             const response = await fetch(authUrl, {
@@ -71,26 +74,30 @@
         async function initialize() {
             sessionStorage.removeItem('sessionToken');
             const urlParams = new URLSearchParams(window.location.search);
-            const tokenFromUrl = urlParams.get('token');
             const reason = urlParams.get('reason');
+
+            // Cek parameter 'tokenakses' dari URL
+            const productTokenFromUrl = urlParams.get('tokenakses');
             
             if (reason === 'logout') {
-                messageArea.className = 'message-area info'; // Gunakan style info
+                messageArea.className = 'message-area info';
                 messageArea.innerHTML = "Anda telah berhasil keluar.";
-                return; // Hentikan eksekusi lebih lanjut
+                return;
             }
 
             if (reason === 'unauthorized') {
                 denyAccess("Sesi tidak valid. Silakan verifikasi ulang akses Anda.");
+                return;
             }
 
-            if (tokenFromUrl) {
-                messageArea.textContent = 'Memverifikasi token dari URL...';
+            // Jika ada tokenakses di URL, jalankan alur verifikasi token produk
+            if (productTokenFromUrl) {
+                messageArea.textContent = 'Memverifikasi token akses produk...';
                 authForm.style.display = 'none';
                 try {
-                    const result = await callAuthApi('verify_token', { token: tokenFromUrl });
-                    if (result.status === 'sukses') {
-                        grantAccess(tokenFromUrl);
+                    const result = await callAuthApi('get_session_by_product_token', { productToken: productTokenFromUrl });
+                    if (result.status === 'sukses' && result.data.token) {
+                        grantAccess(result.data.token);
                     } else {
                         denyAccess(result.message);
                     }
@@ -100,7 +107,7 @@
             }
         }
         
-        // --- EVENT LISTENER (TIDAK BERUBAH) ---
+        // Event listener untuk tombol cek email
         emailCheckBtn.addEventListener('click', async () => {
             const email = emailInput.value.trim();
             if (!email) {
