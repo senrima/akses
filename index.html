@@ -52,11 +52,10 @@
         window.location.href = 'auth.html?reason=logout';
     });
 
-    // --- KONFIGURASI ---
+
     const authUrl = 'https://akses.s-tools.id/auth/v1'; // URL Worker Anda
     const productListContainer = document.getElementById('product-list');
 
-    // --- PERUBAHAN 1: Tambahkan API Key di sini ---
     const apiKey = 'APIKEYAKSESUNTUKVERIFIKASIOTENTIKASIPRODUKTOOLS'; // Samakan dengan di GAS & auth.html
 
     async function loadUserProducts() {
@@ -70,7 +69,7 @@
             const response = await fetch(authUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // --- PERUBAHAN 2: Sertakan apiKey di dalam body ---
+
                 body: JSON.stringify({ apiKey, action: 'get_pengguna_produk', data: { token } })
             });
             const result = await response.json();
@@ -109,4 +108,5 @@
 </script>
 </body>
 </html>
+
 
