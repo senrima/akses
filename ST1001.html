@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Maker - Edisi Teaser Film</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & Babel for JSX in browser -->
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* Animasi Gradien untuk Latar Belakang */
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #F9FAFB;
+            background: linear-gradient(-45deg, #111827, #10172A, #1E1B4B, #3730A3);
+            background-size: 400% 400%;
+            animation: gradient-animation 20s ease infinite;
+            overflow-x: hidden;
+        }
+        /* Efek Kaca untuk Kontainer */
+        .glass-effect {
+            background: rgba(31, 41, 55, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- =================================== -->
+    <!--      CONTAINER PROMPT MAKER UTAMA     -->
+    <!-- =================================== -->
+    <main id="main-content" class="w-full overflow-y-auto">
+        <div id="prompt-maker-root" class="tool-view"></div>
+    </main>
+
+    <!-- =================================== -->
+    <!--   APLIKASI REACT (PROMPT MAKER)     -->
+    <!-- =================================== -->
+    <script type="text/babel">
+        // Helper function to generate a unique ID
+        const generateUniqueId = () => `id-${Math.random().toString(36).substr(2, 9)}`;
+
+        // --- SVG Icons for a more modern UI ---
+        const PlusIcon = () => (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+          </svg>
+        );
+
+        const TrashIcon = () => (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
+          </svg>
+        );
+
+        const SparklesIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M19 3v4M17 5h4M12 3v4M10 5h4M5 21v-4M3 19h4M19 21v-4M17 19h4M12 21v-4M10 19h4M12 9a3 3 0 100-6 3 3 0 000 6zM5 15a3 3 0 100-6 3 3 0 000 6zM19 15a3 3 0 100-6 3 3 0 000 6z" />
+            </svg>
+        );
+
+        const CopyIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+        );
+
+        const TranslateIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m4 13l4-4M19 9l-4 4M21 12h-8m-4-8v2m-6 4h12M3 21h18" />
+            </svg>
+        );
+        
+        const PlayIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+            </svg>
+        );
+
+        // --- OPTIONS untuk Teaser/Trailer ---
+        const options = {
+          tujuanUtamaVideo: ['Teaser / Trailer Film', 'Video Musik', 'Film Pendek (Short Film)', 'Vlog Sinematik', 'Iklan Komersial (TVC)', 'Lainnya (Tulis Sendiri)'],
+          durasiVideo: ['Sekitar 5 detik', 'Sekitar 8 detik', 'Sekitar 10 detik', 'Sekitar 15 detik', 'Sekitar 30 detik', 'Sekitar 60 detik', 'Lainnya (Tulis Sendiri)'],
+          aspekRasio: ['16:9 (Horizontal)', '9:16 (Vertikal)', '2.39:1 (Cinemascope)', '1:1 (Persegi)', 'Lainnya (Tulis Sendiri)'],
+          gayaVisualEstetika: ['Realistis, dengan nuansa sinematik yang gelap (gritty)', 'Sinematik', 'Realistis', 'Fantasi', 'Horor', 'Fiksi Ilmiah', 'Minimalis', 'Retro', 'Lainnya (Tulis Sendiri)'],
+          pencahayaan: ['Pencahayaan dramatis dari lampu neon kota di malam hari', 'Cerah alami', 'Dramatis', 'Low-key (gelap dengan kontras tinggi)', 'Siluet', 'Cahaya lembut (soft light)', 'Cahaya keras (hard light)', 'Lainnya (Tulis Sendiri)'],
+          latarBelakangSetting: ['Gang sempit di antara gedung-gedung tinggi, aspal basah memantulkan cahaya neon', 'Jalanan kota metropolitan di malam hari', 'Hutan lebat berkabut di pagi hari', 'Interior sebuah gedung tua yang ditinggalkan', 'Laboratorium sains futuristik yang steril', 'Puncak gunung dengan pemandangan dramatis', 'Ruang tak terbatas (void) berwarna gelap', 'Lainnya (Tulis Sendiri)'],
+          namaKarakter: ['Protagonis', 'Antagonis', 'Karakter Pendukung', 'Korban', 'Figuran', 'Lainnya (Tulis Sendiri)'],
+          jenisKelamin: ['Pria', 'Wanita', 'Non-biner', 'Tidak Spesifik'],
+          usia: ['Anak-anak', 'Remaja', 'Dewasa Muda (20-an)', 'Dewasa (30-an)', 'Paruh Baya', 'Tua'],
+          berasalDari: ['Indonesia', 'Asia Timur', 'Eropa', 'Amerika', 'Afrika', 'Lainnya (Tulis Sendiri)'],
+          warnaKulit: ['Putih', 'Sawo Matang', 'Gelap', 'Kuning Langsat', 'Lainnya (Tulis Sendiri)'],
+          bentukWajah: ['Oval', 'Bulat', 'Kotak', 'Hati', 'Lainnya (Tulis Sendiri)'],
+          bentukHidung: ['Mancung', 'Pesek', 'Sedang', 'Lainnya (Tulis Sendiri)'],
+          modelRambut: ['Pendek', 'Panjang', 'Keriting', 'Lurus', 'Bergelombang', 'Botak', 'Lainnya (Tulis Sendiri)'],
+          warnaRambut: ['Hitam', 'Cokelat', 'Pirang', 'Merah', 'Abu-abu', 'Warna tidak alami (biru, hijau, dll.)', 'Lainnya (Tulis Sendiri)'],
+          pakaianAtasan: ['Kaos', 'Kemeja', 'Jaket', 'Hoodie', 'Jas', 'Blus', 'Lainnya (Tulis Sendiri)'],
+          warnaAtasan: ['Merah', 'Putih', 'Hijau', 'Biru', 'Hitam', 'Cokelat', 'Abu-abu', 'Lainnya (Tulis Sendiri)'],
+          pakaianBawahan: ['Celana Panjang', 'Celana Pendek', 'Rok', 'Lainnya (Tulis Sendiri)'],
+          warnaBawahan: ['Merah', 'Putih', 'Hijau', 'Biru', 'Hitam', 'Cokelat', 'Abu-abu', 'Lainnya (Tulis Sendiri)'],
+          alasKaki: ['Sepatu Kets', 'Sandal', 'Sepatu Formal', 'Boots', 'Tanpa Alas Kaki', 'Lainnya (Tulis Sendiri)'],
+          warnaAlasKaki: ['Merah', 'Putih', 'Hijau', 'Biru', 'Hitam', 'Cokelat', 'Abu-abu', 'Lainnya (Tulis Sendiri)'],
+          elemenAudio: ['Musik Latar (Background Music) - Emosional yang menegangkan', 'Musik Latar (Background Music) - Epik dan megah', 'Musik Latar (Background Music) - Horor mencekam', 'Efek Suara (SFX) - Guntur yang menggelegar', 'Hening (Silence) untuk efek dramatis', 'Suara detak jantung yang cepat', 'Lainnya (Tulis Sendiri)'],
+          waktuDurasi: ['(0-2 detik)', '(2-4 detik)', '(4-5 detik)', 'Beberapa saat kemudian', 'Di awal adegan', 'Di akhir adegan', 'Lainnya (Tulis Sendiri)'],
+          sudutKamera: ['Sudut mata (Eye Level)', 'Sudut rendah (Low Angle)', 'Sudut tinggi (High Angle)', 'Close-up ekstrem', 'Sudut over-the-shoulder', 'Point of View (POV)', 'Dutch Angle (Miring)', 'Lainnya (Tulis Sendiri)'],
+          gerakanKamera: ['Kamera statis', 'Gerakan sangat lambat (slow motion)', 'Zoom in perlahan', 'Zoom out perlahan', 'Dolly in/out', 'Tracking shot (mengikuti subjek)', 'Panning (gerakan horizontal)', 'Tilting (gerakan vertikal)', 'Lainnya (Tulis Sendiri)'],
+        };
+
+        // --- Komponen UI yang Didesain Ulang ---
+        const inputClass = "w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all duration-300";
+        const labelClass = "block text-slate-300 text-sm font-bold mb-2";
+        const smallLabelClass = "block text-slate-400 text-xs font-bold mb-1";
+        const smallInputClass = `${inputClass} text-sm`;
+
+        const Dropdown = ({ label, value, onChange, options, customValue, onCustomChange, isTextarea = false, small = false }) => (
+          <div className="mb-4">
+            <label className={small ? smallLabelClass : labelClass}>{label}</label>
+            <select className={small ? smallInputClass : inputClass} value={value} onChange={onChange}>
+              <option value="">Pilih...</option>
+              {options.map((option, index) => (
+                <option key={index} value={option}>{option}</option>
+              ))}
+            </select>
+            {value === 'Lainnya (Tulis Sendiri)' && (
+              isTextarea ? (
+                <textarea className={`mt-2 ${small ? smallInputClass : inputClass}`} rows="3" placeholder={`Tulis ${label.toLowerCase()} sendiri...`} value={customValue} onChange={onCustomChange} />
+              ) : (
+                <input type="text" className={`mt-2 ${small ? smallInputClass : inputClass}`} placeholder={`Tulis ${label.toLowerCase()} sendiri...`} value={customValue} onChange={onCustomChange} />
+              )
+            )}
+          </div>
+        );
+
+        const CharacterDetailDropdown = ({ label, value, onChange, options, customValue, onCustomChange }) => (
+          <div>
+            <label className={`${labelClass} text-xs`}>{label}</label>
+            <select className={`${inputClass} py-1 text-sm`} value={value || ''} onChange={onChange}>
+              <option value="">Pilih...</option>
+              {options.map((option, index) => (
+                <option key={index} value={option}>{option}</option>
+              ))}
+            </select>
+            {value === 'Lainnya (Tulis Sendiri)' && (
+              <input type="text" className={`mt-1 ${inputClass} py-1 text-sm`} placeholder={`Tulis ${label.toLowerCase()} sendiri...`} value={customValue || ''} onChange={onCustomChange} />
+            )}
+          </div>
+        );
+
+        const TutorialPopup = ({ onClose }) => {
+            const videoId = "EFRZL5AuxyU";
+            const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+            return (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300" onClick={onClose}>
+                    <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-6 w-full max-w-lg relative text-center" onClick={e => e.stopPropagation()}>
+                        <button onClick={onClose} className="absolute -top-2 -right-2 bg-slate-700 text-white rounded-full h-8 w-8 flex items-center justify-center z-10 hover:bg-red-500 transition-colors" aria-label="Close tutorial">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                        <h3 className="text-xl font-bold text-cyan-300 mb-4">Cara Mendapatkan API Key</h3>
+                        <p className="text-slate-300 mb-4">Klik gambar atau tombol di bawah untuk membuka video tutorial di tab baru.</p>
+                        <a href={videoUrl} target="_blank" rel="noopener noreferrer">
+                            <img src={thumbnailUrl} alt="Video Tutorial Thumbnail" className="rounded-lg mb-4 w-full cursor-pointer hover:opacity-80 transition-opacity"/>
+                        </a>
+                        <a 
+                            href={videoUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center w-full px-4 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-lg"
+                        >
+                            <PlayIcon />
+                            Tonton di YouTube
+                        </a>
+                    </div>
+                </div>
+            );
+        };
+
+
+        function App() {
+          const { useState, useCallback, useEffect } = React;
+
+          const [promptOptions, setPromptOptions] = useState({
+            tujuanUtamaVideo: 'Teaser / Trailer Film', customTujuanUtamaVideo: '',
+            durasiVideo: 'Sekitar 5 detik', customDurasiVideo: '',
+            aspekRasio: '16:9 (Horizontal)', customAspekRasio: '',
+            gayaVisualEstetika: 'Realistis, dengan nuansa sinematik yang gelap (gritty)', customGayaVisualEstetika: '',
+            pencahayaan: 'Pencahayaan dramatis dari lampu neon kota di malam hari', customPencahayaan: '',
+            latarBelakangSetting: 'Gang sempit di antara gedung-gedung tinggi, aspal basah memantulkan cahaya neon', customLatarBelakangSetting: '',
+            karakterSubjekUtama: [],
+            alurCerita: [
+                { id: generateUniqueId(), timing: '(0-2 detik)', customTiming: '', action: 'Karakter Protagonis (anak-anak) berdiri sendirian, menatap genangan air di tanah dengan ekspresi penasaran.', sudutKamera: 'Sudut mata (Eye Level)', customSudutKamera: '', gerakanKamera: 'Kamera statis', customGerakanKamera: '' },
+                { id: generateUniqueId(), timing: '(2-4 detik)', customTiming: '', action: 'Dari pantulan di genangan air, kita melihat siluet Antagonis (remaja) perlahan muncul di belakang si anak.', sudutKamera: 'Sudut mata (Eye Level)', customSudutKamera: '', gerakanKamera: 'Gerakan sangat lambat (slow motion)', customGerakanKamera: '' },
+                { id: generateUniqueId(), timing: '(4-5 detik)', customTiming: '', action: 'Mata Protagonis melebar kaget saat menyadari kehadiran Antagonis. Tepat pada momen ini, kilat menyambar di langit, menerangi wajahnya sesaat.', sudutKamera: 'Close-up ekstrem', customSudutKamera: '', gerakanKamera: 'Kamera statis', customGerakanKamera: '' },
+            ],
+            dialog: 'Tidak ada dialog.',
+            narasiVoiceOver: '"Dia di sini."',
+            elemenAudio: 'Musik Latar (Background Music) - Emosional yang menegangkan', customElemenAudio: '',
+          });
+
+          const [generatedPrompt, setGeneratedPrompt] = useState('');
+          const [loading, setLoading] = useState(false);
+          const [message, setMessage] = useState('');
+          const [userApiKey, setUserApiKey] = useState('');
+          const [isTutorialVisible, setIsTutorialVisible] = useState(false);
+
+          useEffect(() => {
+            if (message) {
+              const timer = setTimeout(() => setMessage(''), 4000);
+              return () => clearTimeout(timer);
+            }
+          }, [message]);
+
+          const handleChange = (e, field) => {
+            setPromptOptions(prev => ({
+              ...prev,
+              [field]: e.target.value,
+              [`custom${field.charAt(0).toUpperCase() + field.slice(1)}`]: e.target.value === 'Lainnya (Tulis Sendiri)' ? prev[`custom${field.charAt(0).toUpperCase() + field.slice(1)}`] : ''
+            }));
+          };
+
+          const handleCustomChange = (e, field) => {
+            setPromptOptions(prev => ({ ...prev, [`custom${field.charAt(0).toUpperCase() + field.slice(1)}`]: e.target.value }));
+          };
+
+          const handleSimpleChange = (e, field) => {
+            setPromptOptions(prev => ({ ...prev, [field]: e.target.value }));
+          };
+
+          const handleStoryStepChange = (e, id, field) => {
+            const { value } = e.target;
+            setPromptOptions(prev => ({
+                ...prev,
+                alurCerita: prev.alurCerita.map(step => {
+                    if (step.id === id) {
+                        const updatedStep = { ...step, [field]: value };
+                        if (value !== 'Lainnya (Tulis Sendiri)') {
+                            const customField = `custom${field.charAt(0).toUpperCase() + field.slice(1)}`;
+                            if (updatedStep.hasOwnProperty(customField)) {
+                                updatedStep[customField] = '';
+                            }
+                        }
+                        return updatedStep;
+                    }
+                    return step;
+                })
+            }));
+          };
+
+          const handleStoryStepCustomChange = (e, id, field) => {
+            const { value } = e.target;
+            setPromptOptions(prev => ({
+                ...prev,
+                alurCerita: prev.alurCerita.map(step =>
+                    step.id === id ? { ...step, [field]: value } : step
+                )
+            }));
+          };
+
+          const addStoryStep = () => {
+            setPromptOptions(prev => ({
+                ...prev,
+                alurCerita: [
+                    ...prev.alurCerita,
+                    { id: generateUniqueId(), timing: '', customTiming: '', action: '', sudutKamera: '', customSudutKamera: '', gerakanKamera: '', customGerakanKamera: '' }
+                ]
+            }));
+          };
+
+          const removeStoryStep = (id) => {
+            setPromptOptions(prev => ({
+                ...prev,
+                alurCerita: prev.alurCerita.filter(step => step.id !== id)
+            }));
+          };
+
+          const addRepeatableItem = (field, defaultValues = {}) => {
+            let newItem;
+            const id = generateUniqueId();
+
+            if (field === 'karakterSubjekUtama') {
+              newItem = {
+                id, namaKarakter: '', customNamaKarakter: '', jenisKelamin: '', customJenisKelamin: '',
+                usia: '', customUsia: '', berasalDari: '', customBerasalDari: '', warnaKulit: '', customWarnaKulit: '',
+                bentukWajah: '', customBentukWajah: '', bentukHidung: '', customBentukHidung: '', modelRambut: '', customModelRambut: '',
+                warnaRambut: '', customWarnaRambut: '', pakaianAtasan: '', customPakaianAtasan: '', warnaAtasan: '', customWarnaAtasan: '',
+                pakaianBawahan: '', customPakaianBawahan: '', warnaBawahan: '', customWarnaBawahan: '', alasKaki: '', customAlasKaki: '',
+                warnaAlasKaki: '', customWarnaAlasKaki: '', ...defaultValues,
+              };
+            } else {
+              newItem = { id, value: '', custom: '', ...defaultValues };
+            }
+            setPromptOptions(prev => ({ ...prev, [field]: [...prev[field], newItem] }));
+          };
+
+          const removeRepeatableItem = (field, id) => {
+            setPromptOptions(prev => ({ ...prev, [field]: prev[field].filter(item => item.id !== id) }));
+          };
+
+          const handleCharacterDetailChange = (e, charId, detailField) => {
+            const value = e.target.value;
+            setPromptOptions(prev => ({
+              ...prev,
+              karakterSubjekUtama: prev.karakterSubjekUtama.map(char => {
+                if (char.id === charId) {
+                  const updatedChar = { ...char, [detailField]: value };
+                  updatedChar[`custom${detailField.charAt(0).toUpperCase() + detailField.slice(1)}`] = value === 'Lainnya (Tulis Sendiri)' ? (char[`custom${detailField.charAt(0).toUpperCase() + detailField.slice(1)}`] || '') : '';
+                  return updatedChar;
+                }
+                return char;
+              })
+            }));
+          };
+
+          const handleCustomCharacterDetailChange = (e, charId, detailField) => {
+            setPromptOptions(prev => ({
+              ...prev,
+              karakterSubjekUtama: prev.karakterSubjekUtama.map(char =>
+                char.id === charId ? { ...char, [`custom${detailField.charAt(0).toUpperCase() + detailField.slice(1)}`]: e.target.value } : char
+              )
+            }));
+          };
+
+          const generatePromptText = useCallback(() => {
+            const parts = [];
+            const getValue = (field, customField) => promptOptions[field] === 'Lainnya (Tulis Sendiri)' ? promptOptions[customField] : promptOptions[field];
+            
+            const getCharacterDetails = (char) => {
+              const details = [];
+              const charGetValue = (field) => char[field] === 'Lainnya (Tulis Sendiri)' ? char[`custom${field.charAt(0).toUpperCase() + field.slice(1)}`] : char[field];
+              const charFields = ['namaKarakter', 'jenisKelamin', 'usia', 'berasalDari', 'warnaKulit', 'bentukWajah', 'bentukHidung', 'modelRambut', 'warnaRambut', 'pakaianAtasan', 'warnaAtasan', 'pakaianBawahan', 'warnaBawahan', 'alasKaki', 'warnaAlasKaki'];
+              charFields.forEach(field => {
+                const value = charGetValue(field);
+                if (value) {
+                    const label = field === 'namaKarakter' ? 'Peran' : field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                    details.push(`${label}: ${value}`);
+                }
+              });
+              return details.join(', ');
+            };
+
+            const appendIfPresent = (label, value) => { if (value) parts.push(`${label}: ${value}`); };
+            
+            appendIfPresent('Tujuan Utama Video', getValue('tujuanUtamaVideo', 'customTujuanUtamaVideo'));
+            appendIfPresent('Durasi Video (Estimasi)', getValue('durasiVideo', 'customDurasiVideo'));
+            appendIfPresent('Aspek Rasio', getValue('aspekRasio', 'customAspekRasio'));
+            appendIfPresent('Gaya Visual dan Estetika', getValue('gayaVisualEstetika', 'customGayaVisualEstetika'));
+            appendIfPresent('Pencahayaan', getValue('pencahayaan', 'customPencahayaan'));
+            appendIfPresent('Latar Belakang/Setting', getValue('latarBelakangSetting', 'customLatarBelakangSetting'));
+
+            if (promptOptions.karakterSubjekUtama.length > 0) {
+                promptOptions.karakterSubjekUtama.forEach((char, index) => {
+                    const details = getCharacterDetails(char);
+                    if (details) {
+                        parts.push(`Karakter/Subjek Utama ${index + 1}: ${details}`);
+                    }
+                });
+            }
+
+            const alurCeritaText = promptOptions.alurCerita
+                .map((step, index) => {
+                    const timing = step.timing === 'Lainnya (Tulis Sendiri)' ? step.customTiming : step.timing;
+                    const sudut = step.sudutKamera === 'Lainnya (Tulis Sendiri)' ? step.customSudutKamera : step.sudutKamera;
+                    const gerakan = step.gerakanKamera === 'Lainnya (Tulis Sendiri)' ? step.customGerakanKamera : step.gerakanKamera;
+                    const action = step.action;
+
+                    if (!action && !sudut && !gerakan) return null;
+
+                    let line = `${index + 1}.`;
+                    if (timing) line += ` ${timing}`;
+                    if (sudut) line += ` (Sudut: ${sudut})`;
+                    if (gerakan) line += ` (Gerakan: ${gerakan})`;
+                    if (action) line += `: ${action}`;
+                    
+                    return line.trim();
+                })
+                .filter(Boolean)
+                .join('\n');
+            
+            if (alurCeritaText) {
+                parts.push(`\nAlur Cerita/Urutan Adegan:\n${alurCeritaText}`);
+            }
+
+            appendIfPresent('\nDialog', promptOptions.dialog);
+            appendIfPresent('Narasi / Voice-over (Bahasa Indonesia)', promptOptions.narasiVoiceOver);
+            appendIfPresent('Elemen Audio', getValue('elemenAudio', 'customElemenAudio'));
+
+            return parts.filter(Boolean).join('\n');
+          }, [promptOptions]);
+
+          const handleGeneratePrompt = () => {
+            const prompt = generatePromptText();
+            setGeneratedPrompt(prompt);
+            setMessage('Prompt berhasil dibuat!');
+          };
+
+          const copyToClipboard = (text, successMessage) => {
+            try {
+              const textarea = document.createElement('textarea');
+              textarea.value = text;
+              textarea.style.position = 'fixed';
+              textarea.style.opacity = '0';
+              document.body.appendChild(textarea);
+              textarea.select();
+              document.execCommand('copy');
+              document.body.removeChild(textarea);
+              setMessage(successMessage);
+            } catch (err) {
+              console.error('Gagal menyalin: ', err);
+              setMessage('Gagal menyalin prompt.');
+            }
+          };
+
+          const handleCopyIndonesianPrompt = () => {
+            if (generatedPrompt) {
+              copyToClipboard(generatedPrompt, 'Prompt Indonesia berhasil disalin!');
+            } else {
+              setMessage('Buat prompt terlebih dahulu.');
+            }
+          };
+
+          const handleCopyEnglishPrompt = async () => {
+            if (!userApiKey) {
+                setMessage('Silakan masukkan API Key Gemini Anda terlebih dahulu di bagian Pengaturan API.');
+                return;
+            }
+            if (!generatedPrompt) {
+              setMessage('Buat prompt terlebih dahulu untuk diterjemahkan.');
+              return;
+            }
+
+            setLoading(true);
+            setMessage('Menerjemahkan prompt ke Bahasa Inggris...');
+
+            try {
+              const instruction = `Translate the following Indonesian text to English.
+    IMPORTANT:
+    - Keep the text following "Narasi / Voice-over (Bahasa Indonesia):" exactly as it is, in Indonesian. Only translate the label itself to "Narration / Voice-over (Indonesian):".
+    - Do not translate the content of the "Dialog:" line if it says "Tidak ada dialog.". Translate it to "Dialog: No dialog.".
+    - Translate all other labels and descriptions.
+
+    Here is the text to translate:
+    ---
+    ${generatedPrompt}`;
+
+              let chatHistory = [{ role: "user", parts: [{ text: instruction }] }];
+              const payload = { contents: chatHistory };
+              
+              const apiKey = userApiKey;
+              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
+              const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+              
+              if (!response.ok) {
+                  const errorData = await response.json();
+                  throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+              }
+
+              const result = await response.json();
+
+              if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+                let translatedText = result.candidates[0].content.parts[0].text;
+                copyToClipboard(translatedText, 'Prompt English berhasil disalin!');
+              } else {
+                setMessage(result.error?.message || 'Gagal menerjemahkan. Periksa API Key atau coba lagi.');
+                console.error('API response error:', result);
+              }
+            } catch (error) {
+              setMessage(`Terjadi kesalahan: ${error.message}`);
+              console.error('Translation error:', error);
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          // Ini adalah JSX utama untuk UI Prompt Maker
+          return (
+            <div className="text-white p-4 sm:p-6 lg:p-8">
+              {isTutorialVisible && <TutorialPopup onClose={() => setIsTutorialVisible(false)} />}
+              <div className="max-w-5xl mx-auto bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/50 p-6 sm:p-8 lg:p-10 border border-slate-700">
+                <div className="text-center mb-10">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400 mb-2" style={{textShadow: '0 0 15px rgba(100, 255, 255, 0.5)'}}>
+                        Prompt Maker
+                    </h1>
+                    <h2 className="text-xl sm:text-2xl font-semibold text-slate-300">
+                        Edisi Teaser Film
+                    </h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mb-8">
+                  <Dropdown label="Tujuan Utama Video" value={promptOptions.tujuanUtamaVideo} onChange={(e) => handleChange(e, 'tujuanUtamaVideo')} options={options.tujuanUtamaVideo} customValue={promptOptions.customTujuanUtamaVideo} onCustomChange={(e) => handleCustomChange(e, 'tujuanUtamaVideo')} />
+                  <Dropdown label="Durasi Video (Estimasi)" value={promptOptions.durasiVideo} onChange={(e) => handleChange(e, 'durasiVideo')} options={options.durasiVideo} customValue={promptOptions.customDurasiVideo} onCustomChange={(e) => handleCustomChange(e, 'durasiVideo')} />
+                  <Dropdown label="Aspek Rasio" value={promptOptions.aspekRasio} onChange={(e) => handleChange(e, 'aspekRasio')} options={options.aspekRasio} customValue={promptOptions.customAspekRasio} onCustomChange={(e) => handleCustomChange(e, 'aspekRasio')} />
+                  <Dropdown label="Gaya Visual dan Estetika" value={promptOptions.gayaVisualEstetika} onChange={(e) => handleChange(e, 'gayaVisualEstetika')} options={options.gayaVisualEstetika} customValue={promptOptions.customGayaVisualEstetika} onCustomChange={(e) => handleCustomChange(e, 'gayaVisualEstetika')} />
+                  <Dropdown label="Pencahayaan" value={promptOptions.pencahayaan} onChange={(e) => handleChange(e, 'pencahayaan')} options={options.pencahayaan} customValue={promptOptions.customPencahayaan} onCustomChange={(e) => handleCustomChange(e, 'pencahayaan')} />
+                  <Dropdown label="Latar Belakang/Setting" value={promptOptions.latarBelakangSetting} onChange={(e) => handleChange(e, 'latarBelakangSetting')} options={options.latarBelakangSetting} customValue={promptOptions.customLatarBelakangSetting} onCustomChange={(e) => handleCustomChange(e, 'latarBelakangSetting')} />
+                </div>
+                <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg mb-8">
+                    <h3 className="text-lg font-bold text-cyan-300 mb-4">Karakter/Subjek Utama</h3>
+                    {promptOptions.karakterSubjekUtama.map((char, charIndex) => (
+                        <div key={char.id} className="bg-slate-900/50 p-4 rounded-lg shadow-inner mb-6 border border-slate-700">
+                            <div className="flex justify-between items-center mb-4">
+                                <h4 className="font-semibold text-purple-300">Karakter {charIndex + 1}</h4>
+                                <button onClick={() => removeRepeatableItem('karakterSubjekUtama', char.id)} className="p-2 bg-red-500/80 text-white rounded-lg hover:bg-red-500 transition-colors duration-200 text-sm"><TrashIcon /></button>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
+                                <CharacterDetailDropdown key="namaKarakter" label="Peran" value={char.namaKarakter} onChange={(e) => handleCharacterDetailChange(e, char.id, 'namaKarakter')} options={options.namaKarakter} customValue={char.customNamaKarakter} onCustomChange={(e) => handleCustomCharacterDetailChange(e, char.id, 'namaKarakter')} />
+                                {Object.keys(options).filter(k => ['jenisKelamin', 'usia', 'berasalDari', 'warnaKulit', 'bentukWajah', 'bentukHidung', 'modelRambut', 'warnaRambut', 'pakaianAtasan', 'warnaAtasan', 'pakaianBawahan', 'warnaBawahan', 'alasKaki', 'warnaAlasKaki'].includes(k)).map(key => (
+                                    <CharacterDetailDropdown key={key} label={key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} value={char[key]} onChange={(e) => handleCharacterDetailChange(e, char.id, key)} options={options[key]} customValue={char[`custom${key.charAt(0).toUpperCase() + key.slice(1)}`]} onCustomChange={(e) => handleCustomCharacterDetailChange(e, char.id, key)} />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                    <button onClick={() => addRepeatableItem('karakterSubjekUtama', {})} className="flex items-center px-4 py-2 bg-purple-600/80 text-white rounded-lg hover:bg-purple-600 transition-colors duration-200 shadow-md font-semibold"><PlusIcon /> Tambah Karakter</button>
+                </div>
+                <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg mb-8">
+                    <h3 className="text-lg font-bold text-cyan-300 mb-4">Alur Cerita / Urutan Adegan</h3>
+                    <div className="space-y-4">
+                        {promptOptions.alurCerita.map((step, index) => (
+                            <div key={step.id} className="bg-slate-900/50 p-4 rounded-lg shadow-inner border border-slate-700">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h4 className="font-semibold text-purple-300">Langkah {index + 1}</h4>
+                                    {promptOptions.alurCerita.length > 1 && (
+                                        <button onClick={() => removeStoryStep(step.id)} className="p-2 bg-red-500/80 text-white rounded-lg hover:bg-red-500 transition-colors duration-200 text-sm"><TrashIcon /></button>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
+                                   <Dropdown small label="Waktu / Durasi" value={step.timing} onChange={(e) => handleStoryStepChange(e, step.id, 'timing')} options={options.waktuDurasi} customValue={step.customTiming} onCustomChange={(e) => handleStoryStepCustomChange(e, step.id, 'customTiming')} />
+                                   <Dropdown small label="Sudut Kamera" value={step.sudutKamera} onChange={(e) => handleStoryStepChange(e, step.id, 'sudutKamera')} options={options.sudutKamera} customValue={step.customSudutKamera} onCustomChange={(e) => handleStoryStepCustomChange(e, step.id, 'customSudutKamera')} />
+                                   <Dropdown small label="Gerakan Kamera" value={step.gerakanKamera} onChange={(e) => handleStoryStepChange(e, step.id, 'gerakanKamera')} options={options.gerakanKamera} customValue={step.customGerakanKamera} onCustomChange={(e) => handleStoryStepCustomChange(e, step.id, 'customGerakanKamera')} />
+                                </div>
+                                <div className="mt-2">
+                                  <label className={smallLabelClass}>Aksi / Deskripsi Adegan</label>
+                                  <textarea className={`${smallInputClass}`} rows="2" value={step.action} onChange={(e) => handleStoryStepChange(e, step.id, 'action')} placeholder="Contoh: Close-up pada mata karakter yang terkejut."></textarea>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={addStoryStep} className="mt-4 flex items-center px-4 py-2 bg-purple-600/80 text-white rounded-lg hover:bg-purple-600 transition-colors duration-200 shadow-md font-semibold">
+                        <PlusIcon /> Tambah Langkah Cerita
+                    </button>
+                </div>
+                <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg mb-8">
+                    <h3 className="text-lg font-bold text-cyan-300 mb-4">Detail Lainnya</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                        <div>
+                            <label className={labelClass}>Dialog</label>
+                            <input type="text" className={inputClass} value={promptOptions.dialog} onChange={(e) => handleSimpleChange(e, 'dialog')} placeholder="Contoh: Tidak ada dialog." />
+                        </div>
+                        <div>
+                            <label className={labelClass}>Narasi / Voice-over (Bahasa Indonesia)</label>
+                            <input type="text" className={inputClass} value={promptOptions.narasiVoiceOver} onChange={(e) => handleSimpleChange(e, 'narasiVoiceOver')} placeholder='Contoh: "Dia di sini."' />
+                        </div>
+                        <Dropdown label="Elemen Audio (Opsional)" value={promptOptions.elemenAudio} onChange={(e) => handleChange(e, 'elemenAudio')} options={options.elemenAudio} customValue={promptOptions.customElemenAudio} onCustomChange={(e) => handleCustomChange(e, 'elemenAudio')} />
+                    </div>
+                </div>
+                <div className="mt-10 border-t-2 border-slate-700 pt-8">
+                    <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg mb-8">
+                        <h3 className="text-lg font-bold text-cyan-300 mb-4">Pengaturan API (Untuk Terjemahan)</h3>
+                        <label htmlFor="apiKeyInput" className={labelClass}>API Key Gemini Anda</label>
+                        <input id="apiKeyInput" type="password" value={userApiKey} onChange={(e) => setUserApiKey(e.target.value)} placeholder="Masukkan API Key Anda di sini..." className={inputClass} />
+                        <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors duration-200 shadow-md font-semibold w-full sm:w-auto">Dapatkan API Key</a>
+                            <button onClick={() => setIsTutorialVisible(true)} className="flex-1 text-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 shadow-md font-semibold w-full sm:w-auto">
+                                Tonton Tutorial
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-2">
+                    <div className="text-center mb-6">
+                        <button onClick={handleGeneratePrompt} className="w-full sm:w-auto inline-flex justify-center items-center px-8 py-3 bg-gradient-to-r from-green-400 to-cyan-500 text-white font-bold rounded-lg hover:scale-105 transition-transform duration-200 shadow-lg shadow-cyan-500/30 text-lg">
+                            <SparklesIcon /> Buat Prompt
+                        </button>
+                    </div>
+                    {message && (<div className="mt-6 p-3 bg-slate-700/50 text-cyan-300 border border-cyan-400/50 rounded-lg text-center font-medium transition-opacity duration-300">{message}</div>)}
+                </div>
+                {generatedPrompt && (
+                  <div className="mt-8 p-6 bg-slate-900/70 rounded-xl border border-slate-700 shadow-inner">
+                    <div className="flex flex-wrap justify-between items-center gap-y-4 mb-4">
+                      <h3 className="text-xl font-bold text-cyan-300 w-full sm:w-auto">Prompt yang Dihasilkan:</h3>
+                      <div className="flex flex-wrap gap-3">
+                        <button onClick={handleCopyIndonesianPrompt} className="flex items-center justify-center flex-grow sm:flex-grow-0 px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-semibold rounded-lg hover:scale-105 transition-transform duration-200 shadow-lg shadow-orange-500/30 text-sm"><CopyIcon /> Salin (ID)</button>
+                        <button onClick={handleCopyEnglishPrompt} disabled={loading} className="flex items-center justify-center flex-grow sm:flex-grow-0 px-3 py-1.5 bg-gradient-to-r from-blue-400 to-purple-500 text-white font-semibold rounded-lg hover:scale-105 transition-transform duration-200 shadow-lg shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                          {loading ? (<svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>) : <TranslateIcon />}
+                          <span className="ml-1">{loading ? '...' : 'Salin (EN)'}</span>
+                        </button>
+                      </div>
+                    </div>
+                    <pre className="whitespace-pre-wrap font-mono text-sm text-slate-200 bg-black/30 p-4 rounded-md border border-slate-600">{generatedPrompt}</pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        ReactDOM.render(
+            <App />,
+            document.getElementById('prompt-maker-root')
+        );
+    </script>
+
+</body>
+</html>
