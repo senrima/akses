@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Maker - Edisi Animasi 3D</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & Babel for JSX in browser -->
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* Animasi Gradien untuk Latar Belakang */
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #F9FAFB;
+            background: linear-gradient(-45deg, #111827, #10172A, #1E1B4B, #3730A3);
+            background-size: 400% 400%;
+            animation: gradient-animation 20s ease infinite;
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <main id="main-content" class="w-full overflow-y-auto">
+        <div id="prompt-maker-root" class="tool-view"></div>
+    </main>
+
+    <script type="text/babel">
+        // --- Helper & Icons ---
+        const generateUniqueId = () => `id-${Math.random().toString(36).substr(2, 9)}`;
+
+        const PlusIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>);
+        const TrashIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>);
+        const SparklesIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M19 3v4M17 5h4M12 3v4M10 5h4M5 21v-4M3 19h4M19 21v-4M17 19h4M12 21v-4M10 19h4M12 9a3 3 0 100-6 3 3 0 000 6zM5 15a3 3 0 100-6 3 3 0 000 6zM19 15a3 3 0 100-6 3 3 0 000 6z" /></svg>);
+        const CopyIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>);
+
+        // --- OPTIONS untuk Animasi 3D ---
+        const options = {
+          visualStyle: ['Photorealistic', 'Stylized (Toon/Cel Shading)', 'Low Poly', 'Voxel Art', 'Abstract', 'Lainnya (Tulis Sendiri)'],
+          environmentType: ['Studio Putih (White Room)', 'Luar Ruangan (Outdoor)', 'Dalam Ruangan (Indoor)', 'Fiksi Ilmiah', 'Fantasi', 'Abstrak', 'Lainnya (Tulis Sendiri)'],
+          lightingStyle: ['Three-Point Lighting', 'HDRI (Image-based)', 'Volumetric Lighting', 'Caustics', 'Ambient Occlusion', 'Lainnya (Tulis Sendiri)'],
+          objectType: ['Karakter', 'Kendaraan', 'Bangunan', 'Tanaman', 'Properti (Props)', 'Lainnya (Tulis Sendiri)'],
+          geometryStyle: ['High-poly', 'Low-poly', 'Organik', 'Hard-surface', 'Lainnya (Tulis Sendiri)'],
+          materialType: ['Matte', 'Glossy', 'Metallic', 'Kaca (Glass)', 'Kayu', 'Kain', 'Lainnya (Tulis Sendiri)'],
+          animationType: ['Render Statis (Tanpa Animasi)', 'Animasi Berulang (Looping)', 'Aksi Karakter', 'Simulasi Fisika', 'Lainnya (Tulis Sendiri)'],
+          cameraAngle: ['Eye Level', 'Low Angle', 'High Angle', 'Wide Shot', 'Medium Shot', 'Close-up', 'Lainnya (Tulis Sendiri)'],
+          cameraMovement: ['Statis', 'Dolly Zoom', 'Tracking Shot', 'Orbit', 'Fly-through', 'Lainnya (Tulis Sendiri)'],
+          outputResolution: ['1080p (1920x1080)', '4K (3840x2160)', '1:1 (1080x1080)', '9:16 (1080x1920)', 'Lainnya (Tulis Sendiri)'],
+          frameRate: ['24 fps', '30 fps', '60 fps'],
+        };
+
+        // --- Komponen UI ---
+        const inputClass = "w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all duration-300";
+        const labelClass = "block text-slate-300 text-sm font-bold mb-2";
+
+        const Dropdown = ({ label, value, onChange, options, name, customValue, onCustomChange }) => (
+          <div className="mb-4">
+            <label className={labelClass}>{label}</label>
+            <select name={name} className={inputClass} value={value} onChange={onChange}>
+              <option value="">Pilih...</option>
+              {options.map((option, index) => (<option key={index} value={option}>{option}</option>))}
+            </select>
+            {value === 'Lainnya (Tulis Sendiri)' && (
+              <input type="text" name={`custom${name.charAt(0).toUpperCase() + name.slice(1)}`} className={`mt-2 ${inputClass}`} placeholder={`Tulis ${label.toLowerCase()} sendiri...`} value={customValue} onChange={onCustomChange} />
+            )}
+          </div>
+        );
+
+        const TextInput = ({ label, value, onChange, name, placeholder, isTextarea = false }) => (
+          <div className="mb-4">
+            <label className={labelClass}>{label}</label>
+            {isTextarea ? (
+              <textarea name={name} className={inputClass} rows="3" placeholder={placeholder} value={value} onChange={onChange}></textarea>
+            ) : (
+              <input type="text" name={name} className={inputClass} placeholder={placeholder} value={value} onChange={onChange} />
+            )}
+          </div>
+        );
+
+        function App() {
+          const { useState, useCallback, useEffect } = React;
+
+          const [promptData, setPromptData] = useState({
+            scene: {
+              visualStyle: 'Photorealistic', customVisualStyle: '',
+              environmentType: 'Studio Putih (White Room)', customEnvironmentType: '',
+              environmentDescription: 'Sebuah studio foto minimalis dengan latar belakang cyclorama putih bersih.',
+              lightingStyle: 'Three-Point Lighting', customLightingStyle: '',
+              lightingDescription: 'Key light terang dari kanan atas, fill light lembut dari kiri, dan rim light untuk memisahkan subjek dari latar belakang.',
+            },
+            objects: [
+              {
+                id: generateUniqueId(),
+                objectType: 'Karakter', customObjectType: '',
+                description: 'Astronot wanita dengan helm kaca reflektif, detail pada setelan luar angkasanya menunjukkan sedikit keausan.',
+                geometryStyle: 'High-poly', customGeometryStyle: '',
+                materialType: 'Metallic', customMaterialType: '',
+                materialColor: '#CFD8DC', // Abu-abu kebiruan
+              },
+            ],
+            animation: {
+              animationType: 'Animasi Berulang (Looping)', customAnimationType: '',
+              animationDescription: 'Astronot melayang perlahan di tempat, dengan sedikit gerakan naik turun yang halus.',
+              durationInSeconds: 10,
+              frameRate: '30 fps',
+            },
+            camera: {
+              cameraAngle: 'Medium Shot', customCameraAngle: '',
+              cameraMovement: 'Orbit', customCameraMovement: '',
+              focalLength: 50,
+            },
+            render: {
+              outputResolution: '1:1 (1080x1080)', customOutputResolution: '',
+            }
+          });
+
+          const [generatedJson, setGeneratedJson] = useState('');
+          const [message, setMessage] = useState('');
+
+          useEffect(() => {
+            if (message) {
+              const timer = setTimeout(() => setMessage(''), 4000);
+              return () => clearTimeout(timer);
+            }
+          }, [message]);
+
+          const handleSceneChange = (e) => {
+            const { name, value } = e.target;
+            const isCustom = name.startsWith('custom');
+            const baseName = isCustom ? name.substring(6, 7).toLowerCase() + name.substring(7) : name;
+            
+            setPromptData(prev => ({
+              ...prev,
+              scene: {
+                ...prev.scene,
+                [name]: value,
+                ...(value !== 'Lainnya (Tulis Sendiri)' && !isCustom && { [`custom${baseName.charAt(0).toUpperCase() + baseName.slice(1)}`]: '' })
+              }
+            }));
+          };
+          
+          const handleSectionChange = (section, e) => {
+            const { name, value } = e.target;
+            const isCustom = name.startsWith('custom');
+            const baseName = isCustom ? name.substring(6, 7).toLowerCase() + name.substring(7) : name;
+
+            setPromptData(prev => ({
+              ...prev,
+              [section]: {
+                ...prev[section],
+                [name]: value,
+                 ...(value !== 'Lainnya (Tulis Sendiri)' && !isCustom && { [`custom${baseName.charAt(0).toUpperCase() + baseName.slice(1)}`]: '' })
+              }
+            }));
+          };
+
+          const handleObjectChange = (id, e) => {
+            const { name, value } = e.target;
+            const isCustom = name.startsWith('custom');
+            const baseName = isCustom ? name.substring(6, 7).toLowerCase() + name.substring(7) : name;
+
+            setPromptData(prev => ({
+              ...prev,
+              objects: prev.objects.map(obj => {
+                if (obj.id === id) {
+                    const updatedObj = {...obj, [name]: value };
+                    if(value !== 'Lainnya (Tulis Sendiri)' && !isCustom) {
+                        updatedObj[`custom${baseName.charAt(0).toUpperCase() + baseName.slice(1)}`] = '';
+                    }
+                    return updatedObj;
+                }
+                return obj;
+              })
+            }));
+          };
+
+          const addObject = () => {
+            setPromptData(prev => ({
+              ...prev,
+              objects: [...prev.objects, {
+                id: generateUniqueId(), objectType: '', customObjectType: '', description: '',
+                geometryStyle: '', customGeometryStyle: '', materialType: '', customMaterialType: '', materialColor: '#FFFFFF'
+              }]
+            }));
+          };
+          
+          const removeObject = (id) => {
+            setPromptData(prev => ({ ...prev, objects: prev.objects.filter(obj => obj.id !== id) }));
+          };
+          
+          const generatePromptJson = useCallback(() => {
+              const finalPrompt = {};
+              
+              const processSection = (sectionData) => {
+                  const result = {};
+                  for (const key in sectionData) {
+                      if (key.startsWith('custom') || key === 'id') continue;
+                      
+                      const value = sectionData[key];
+                      if (value === 'Lainnya (Tulis Sendiri)') {
+                          result[key] = sectionData[`custom${key.charAt(0).toUpperCase() + key.slice(1)}`];
+                      } else if (value !== '' && value !== null) {
+                          result[key] = value;
+                      }
+                  }
+                  return result;
+              };
+
+              finalPrompt.scene = processSection(promptData.scene);
+              finalPrompt.objects = promptData.objects.map(obj => processSection(obj));
+              finalPrompt.animation = processSection(promptData.animation);
+              finalPrompt.camera = processSection(promptData.camera);
+              finalPrompt.render = processSection(promptData.render);
+
+              return JSON.stringify(finalPrompt, null, 2);
+          }, [promptData]);
+
+          const handleGeneratePrompt = () => {
+            const jsonOutput = generatePromptJson();
+            setGeneratedJson(jsonOutput);
+            setMessage('Prompt JSON berhasil dibuat!');
+          };
+
+          const copyToClipboard = () => {
+              if(!generatedJson) {
+                  setMessage('Buat prompt terlebih dahulu.');
+                  return;
+              }
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = generatedJson;
+                textarea.style.position = 'fixed'; 
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                setMessage('Prompt JSON berhasil disalin!');
+            } catch (err) {
+              console.error('Gagal menyalin: ', err);
+              setMessage('Gagal menyalin prompt.');
+            }
+          };
+
+          return (
+            <div className="text-white p-4 sm:p-6 lg:p-8">
+              <div className="max-w-5xl mx-auto bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/50 p-6 sm:p-8 lg:p-10 border border-slate-700">
+                <div className="text-center mb-10">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400 mb-2" style={{textShadow: '0 0 15px rgba(100, 255, 255, 0.5)'}}>
+                        3D Animation Prompt Maker
+                    </h1>
+                    <h2 className="text-xl sm:text-2xl font-semibold text-slate-300">
+                        Hasilkan Prompt JSON untuk AI Generator
+                    </h2>
+                </div>
+
+                {/* --- SCENE SECTION --- */}
+                <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg mb-8">
+                    <h3 className="text-lg font-bold text-cyan-300 mb-4">Pengaturan Scene</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                      <Dropdown label="Gaya Visual" name="visualStyle" value={promptData.scene.visualStyle} onChange={handleSceneChange} options={options.visualStyle} customValue={promptData.scene.customVisualStyle} onCustomChange={handleSceneChange} />
+                      <Dropdown label="Tipe Lingkungan" name="environmentType" value={promptData.scene.environmentType} onChange={handleSceneChange} options={options.environmentType} customValue={promptData.scene.customEnvironmentType} onCustomChange={handleSceneChange} />
+                      <TextInput label="Deskripsi Lingkungan" name="environmentDescription" value={promptData.scene.environmentDescription} onChange={handleSceneChange} isTextarea={true} placeholder="Jelaskan detail lingkungan..." />
+                      <Dropdown label="Gaya Pencahayaan" name="lightingStyle" value={promptData.scene.lightingStyle} onChange={handleSceneChange} options={options.lightingStyle} customValue={promptData.scene.customLightingStyle} onCustomChange={handleSceneChange} />
+                      <TextInput label="Deskripsi Pencahayaan" name="lightingDescription" value={promptData.scene.lightingDescription} onChange={handleSceneChange} isTextarea={true} placeholder="Jelaskan mood dan arah cahaya..." />
+                    </div>
+                </div>
+
+                {/* --- OBJECTS SECTION --- */}
+                <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg mb-8">
+                    <h3 className="text-lg font-bold text-cyan-300 mb-4">Objek / Model 3D</h3>
+                    {promptData.objects.map((obj, index) => (
+                      <div key={obj.id} className="bg-slate-900/50 p-4 rounded-lg shadow-inner mb-6 border border-slate-700">
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="font-semibold text-purple-300">Objek {index + 1}</h4>
+                            {promptData.objects.length > 1 && <button onClick={() => removeObject(obj.id)} className="p-2 bg-red-500/80 text-white rounded-lg hover:bg-red-500 transition-colors duration-200 text-sm"><TrashIcon /></button>}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                            <Dropdown label="Tipe Objek" name="objectType" value={obj.objectType} onChange={(e) => handleObjectChange(obj.id, e)} options={options.objectType} customValue={obj.customObjectType} onCustomChange={(e) => handleObjectChange(obj.id, e)} />
+                            <Dropdown label="Gaya Geometri" name="geometryStyle" value={obj.geometryStyle} onChange={(e) => handleObjectChange(obj.id, e)} options={options.geometryStyle} customValue={obj.customGeometryStyle} onCustomChange={(e) => handleObjectChange(obj.id, e)} />
+                            <TextInput label="Deskripsi Detail Objek" name="description" value={obj.description} onChange={(e) => handleObjectChange(obj.id, e)} isTextarea={true} placeholder="Contoh: Robot usang dengan satu mata menyala..." />
+                            <Dropdown label="Tipe Material" name="materialType" value={obj.materialType} onChange={(e) => handleObjectChange(obj.id, e)} options={options.materialType} customValue={obj.customMaterialType} onCustomChange={(e) => handleObjectChange(obj.id, e)} />
+                            <div>
+                                <label className={labelClass}>Warna Dominan Material</label>
+                                <input type="color" name="materialColor" value={obj.materialColor} onChange={(e) => handleObjectChange(obj.id, e)} className="w-full h-10 p-1 bg-slate-800/50 border border-slate-600 rounded-lg cursor-pointer"/>
+                            </div>
+                        </div>
+                      </div>
+                    ))}
+                    <button onClick={addObject} className="flex items-center px-4 py-2 bg-purple-600/80 text-white rounded-lg hover:bg-purple-600 transition-colors duration-200 shadow-md font-semibold"><PlusIcon /> Tambah Objek</button>
+                </div>
+                
+                {/* --- ANIMATION & CAMERA --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg">
+                        <h3 className="text-lg font-bold text-cyan-300 mb-4">Detail Animasi</h3>
+                        <Dropdown label="Tipe Animasi" name="animationType" value={promptData.animation.animationType} onChange={(e) => handleSectionChange('animation', e)} options={options.animationType} customValue={promptData.animation.customAnimationType} onCustomChange={(e) => handleSectionChange('animation', e)} />
+                        <TextInput label="Deskripsi Animasi" name="animationDescription" value={promptData.animation.animationDescription} onChange={(e) => handleSectionChange('animation', e)} isTextarea={true} placeholder="Jelaskan apa yang terjadi..." />
+                        <TextInput label="Durasi (detik)" name="durationInSeconds" value={promptData.animation.durationInSeconds} onChange={(e) => handleSectionChange('animation', e)} placeholder="Contoh: 10" />
+                         <Dropdown label="Frame Rate" name="frameRate" value={promptData.animation.frameRate} onChange={(e) => handleSectionChange('animation', e)} options={options.frameRate} />
+                    </div>
+                    <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg">
+                        <h3 className="text-lg font-bold text-cyan-300 mb-4">Pengaturan Kamera</h3>
+                        <Dropdown label="Sudut Kamera" name="cameraAngle" value={promptData.camera.cameraAngle} onChange={(e) => handleSectionChange('camera', e)} options={options.cameraAngle} customValue={promptData.camera.customCameraAngle} onCustomChange={(e) => handleSectionChange('camera', e)} />
+                        <Dropdown label="Gerakan Kamera" name="cameraMovement" value={promptData.camera.cameraMovement} onChange={(e) => handleSectionChange('camera', e)} options={options.cameraMovement} customValue={promptData.camera.customCameraMovement} onCustomChange={(e) => handleSectionChange('camera', e)} />
+                        <TextInput label="Focal Length (mm)" name="focalLength" value={promptData.camera.focalLength} onChange={(e) => handleSectionChange('camera', e)} placeholder="Contoh: 50" />
+                    </div>
+                </div>
+
+                {/* --- RENDER --- */}
+                 <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg mb-8">
+                    <h3 className="text-lg font-bold text-cyan-300 mb-4">Pengaturan Render</h3>
+                     <Dropdown label="Resolusi Output" name="outputResolution" value={promptData.render.outputResolution} onChange={(e) => handleSectionChange('render', e)} options={options.outputResolution} customValue={promptData.render.customOutputResolution} onCustomChange={(e) => handleSectionChange('render', e)} />
+                </div>
+
+
+                {/* --- ACTION BUTTONS & OUTPUT --- */}
+                <div className="mt-8 border-t-2 border-slate-700 pt-8">
+                    <div className="text-center mb-6">
+                        <button onClick={handleGeneratePrompt} className="w-full sm:w-auto inline-flex justify-center items-center px-8 py-3 bg-gradient-to-r from-green-400 to-cyan-500 text-white font-bold rounded-lg hover:scale-105 transition-transform duration-200 shadow-lg shadow-cyan-500/30 text-lg">
+                            <SparklesIcon /> Buat Prompt JSON
+                        </button>
+                    </div>
+                    {message && (<div className="mt-6 p-3 bg-slate-700/50 text-cyan-300 border border-cyan-400/50 rounded-lg text-center font-medium transition-opacity duration-300">{message}</div>)}
+                </div>
+
+                {generatedJson && (
+                  <div className="mt-8 p-6 bg-slate-900/70 rounded-xl border border-slate-700 shadow-inner">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold text-cyan-300">Prompt JSON yang Dihasilkan:</h3>
+                      <button onClick={copyToClipboard} className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-400 to-purple-500 text-white font-semibold rounded-lg hover:scale-105 transition-transform duration-200 shadow-lg shadow-purple-500/30 text-sm">
+                          <CopyIcon /> Salin JSON
+                      </button>
+                    </div>
+                    <pre className="whitespace-pre-wrap font-mono text-sm text-slate-200 bg-black/30 p-4 rounded-md border border-slate-600 max-h-96 overflow-y-auto">{generatedJson}</pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('prompt-maker-root'));
+    </script>
+</body>
+</html>
+

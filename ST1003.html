@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Maker - Edisi Cerita Animasi 3D</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & Babel for JSX in browser -->
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* Animasi Gradien untuk Latar Belakang */
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #F9FAFB;
+            background: linear-gradient(-45deg, #111827, #10172A, #1E1B4B, #3730A3);
+            background-size: 400% 400%;
+            animation: gradient-animation 20s ease infinite;
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <main id="main-content" class="w-full overflow-y-auto">
+        <div id="prompt-maker-root" class="tool-view"></div>
+    </main>
+
+    <script type="text/babel">
+        // --- Helper & Icons ---
+        const generateUniqueId = () => `id-${Math.random().toString(36).substr(2, 9)}`;
+
+        const PlusIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>);
+        const TrashIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>);
+        const SparklesIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M19 3v4M17 5h4M12 3v4M10 5h4M5 21v-4M3 19h4M19 21v-4M17 19h4M12 21v-4M10 19h4M12 9a3 3 0 100-6 3 3 0 000 6zM5 15a3 3 0 100-6 3 3 0 000 6zM19 15a3 3 0 100-6 3 3 0 000 6z" /></svg>);
+        const CopyIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>);
+
+        // --- OPTIONS untuk Animasi 3D ---
+        const options = {
+          visualStyle: ['Stylized (Toon/Cel Shading)', 'Photorealistic', 'Low Poly', 'Voxel Art', 'Abstract', 'Lainnya (Tulis Sendiri)'],
+          environmentType: ['Fantasi', 'Fiksi Ilmiah', 'Luar Ruangan (Outdoor)', 'Dalam Ruangan (Indoor)', 'Abstrak', 'Lainnya (Tulis Sendiri)'],
+          lightingStyle: ['HDRI (Image-based)', 'Three-Point Lighting', 'Volumetric Lighting', 'Caustics', 'Ambient Occlusion', 'Lainnya (Tulis Sendiri)'],
+          objectType: ['Karakter', 'Properti (Props)', 'Makhluk', 'Bangunan', 'Tanaman', 'Lainnya (Tulis Sendiri)'],
+          geometryStyle: ['Organik', 'Hard-surface', 'High-poly', 'Low-poly', 'Lainnya (Tulis Sendiri)'],
+          materialType: ['Matte', 'Glossy', 'Kain', 'Metallic', 'Kaca (Glass)', 'Kayu', 'Lainnya (Tulis Sendiri)'],
+          cameraAngle: ['Eye Level', 'Low Angle', 'High Angle', 'Wide Shot', 'Medium Shot', 'Close-up', 'Lainnya (Tulis Sendiri)'],
+          cameraMovement: ['Statis', 'Tracking Shot', 'Orbit', 'Dolly Zoom', 'Fly-through', 'Lainnya (Tulis Sendiri)'],
+          outputResolution: ['1080p (1920x1080)', '4K (3840x2160)', '1:1 (1080x1080)', '9:16 (1080x1920)', 'Lainnya (Tulis Sendiri)'],
+          frameRate: ['24 fps', '30 fps', '60 fps'],
+        };
+        
+        // --- Komponen UI ---
+        const inputClass = "w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all duration-300";
+        const labelClass = "block text-slate-300 text-sm font-bold mb-2";
+
+        const Dropdown = ({ label, value, onChange, options, name, customValue, onCustomChange }) => (
+          <div className="mb-4">
+            <label className={labelClass}>{label}</label>
+            <select name={name} className={inputClass} value={value || ''} onChange={onChange}>
+              <option value="">Pilih...</option>
+              {options.map((option, index) => (<option key={index} value={option}>{option}</option>))}
+            </select>
+            {value === 'Lainnya (Tulis Sendiri)' && (
+              <input type="text" name={`custom${name.charAt(0).toUpperCase() + name.slice(1)}`} className={`mt-2 ${inputClass}`} placeholder={`Tulis ${label.toLowerCase()} sendiri...`} value={customValue || ''} onChange={onCustomChange} />
+            )}
+          </div>
+        );
+
+        const TextInput = ({ label, value, onChange, name, placeholder, isTextarea = false }) => (
+          <div className="mb-4">
+            <label className={labelClass}>{label}</label>
+            {isTextarea ? (
+              <textarea name={name} className={inputClass} rows="3" placeholder={placeholder} value={value} onChange={onChange}></textarea>
+            ) : (
+              <input type="text" name={name} className={inputClass} placeholder={placeholder} value={value} onChange={onChange} />
+            )}
+          </div>
+        );
+
+        const createNewScene = (sceneNumber) => ({
+            id: generateUniqueId(),
+            sceneNumber,
+            visualStyle: 'Stylized (Toon/Cel Shading)', customVisualStyle: '',
+            environmentType: 'Fantasi', customEnvironmentType: '',
+            environmentDescription: sceneNumber > 1 ? 'Melanjutkan dari lokasi adegan sebelumnya.' : 'Hutan ajaib di malam hari, diterangi oleh jamur-jamur yang berpendar.',
+            lightingStyle: 'HDRI (Image-based)', customLightingStyle: '',
+            lightingDescription: 'Cahaya lembut dan magis dari flora di hutan, menciptakan bayangan panjang dan nuansa misterius.',
+            objects: [],
+            animationDescription: '',
+            cameraAngle: 'Medium Shot', customCameraAngle: '',
+            cameraMovement: 'Tracking Shot', customCameraMovement: '',
+            focalLength: 35,
+        });
+
+        function App() {
+          const { useState, useCallback, useEffect } = React;
+
+          const [globalSettings, setGlobalSettings] = useState({
+            outputResolution: '1080p (1920x1080)', customOutputResolution: '',
+            frameRate: '24 fps',
+          });
+          
+          const [scenes, setScenes] = useState([createNewScene(1)]);
+          const [generatedJson, setGeneratedJson] = useState('');
+          const [message, setMessage] = useState('');
+
+          useEffect(() => {
+            if (message) {
+              const timer = setTimeout(() => setMessage(''), 4000);
+              return () => clearTimeout(timer);
+            }
+          }, [message]);
+
+          const handleGlobalSettingChange = (e) => {
+            const { name, value } = e.target;
+            const isCustom = name.startsWith('custom');
+            const baseName = isCustom ? name.substring(6, 7).toLowerCase() + name.substring(7) : name;
+            setGlobalSettings(prev => ({
+                ...prev,
+                [name]: value,
+                ...(value !== 'Lainnya (Tulis Sendiri)' && !isCustom && { [`custom${baseName.charAt(0).toUpperCase() + baseName.slice(1)}`]: '' })
+            }));
+          };
+          
+          const handleSceneChange = (sceneId, e) => {
+            const { name, value } = e.target;
+            setScenes(prev => prev.map(scene => {
+                if(scene.id === sceneId) {
+                    const isCustom = name.startsWith('custom');
+                    const baseName = isCustom ? name.substring(6, 7).toLowerCase() + name.substring(7) : name;
+                    const updatedScene = {...scene, [name]: value};
+                    if(value !== 'Lainnya (Tulis Sendiri)' && !isCustom){
+                        updatedScene[`custom${baseName.charAt(0).toUpperCase() + baseName.slice(1)}`] = '';
+                    }
+                    return updatedScene;
+                }
+                return scene;
+            }));
+          };
+
+          const handleObjectChange = (sceneId, objectId, e) => {
+            const { name, value } = e.target;
+            setScenes(prev => prev.map(scene => {
+                if(scene.id === sceneId) {
+                    return {
+                        ...scene,
+                        objects: scene.objects.map(obj => {
+                            if(obj.id === objectId) {
+                                const isCustom = name.startsWith('custom');
+                                const baseName = isCustom ? name.substring(6, 7).toLowerCase() + name.substring(7) : name;
+                                const updatedObj = {...obj, [name]: value};
+                                if(value !== 'Lainnya (Tulis Sendiri)' && !isCustom){
+                                    updatedObj[`custom${baseName.charAt(0).toUpperCase() + baseName.slice(1)}`] = '';
+                                }
+                                return updatedObj;
+                            }
+                            return obj;
+                        })
+                    };
+                }
+                return scene;
+            }));
+          };
+          
+          const addScene = () => {
+              setScenes(prev => [...prev, createNewScene(prev.length + 1)]);
+          };
+          
+          const removeScene = (sceneId) => {
+              setScenes(prev => prev.filter(s => s.id !== sceneId).map((s, i) => ({...s, sceneNumber: i + 1})));
+          };
+
+          const addObject = (sceneId) => {
+            setScenes(prev => prev.map(scene => {
+                if(scene.id === sceneId){
+                    return { ...scene, objects: [...scene.objects, {
+                        id: generateUniqueId(), objectType: 'Karakter', customObjectType: '', description: '',
+                        geometryStyle: 'Organik', customGeometryStyle: '', materialType: 'Matte', customMaterialType: '', materialColor: '#FFFFFF'
+                    }]};
+                }
+                return scene;
+            }));
+          };
+          
+          const removeObject = (sceneId, objectId) => {
+            setScenes(prev => prev.map(scene => {
+                if(scene.id === sceneId) {
+                    return {...scene, objects: scene.objects.filter(obj => obj.id !== objectId)};
+                }
+                return scene;
+            }));
+          };
+          
+          const generatePromptJson = useCallback(() => {
+              const processSection = (sectionData) => {
+                  const result = {};
+                  for (const key in sectionData) {
+                      if (key.startsWith('custom') || key === 'id' || key === 'sceneNumber') continue;
+                      
+                      const value = sectionData[key];
+                      if (value === 'Lainnya (Tulis Sendiri)') {
+                          result[key] = sectionData[`custom${key.charAt(0).toUpperCase() + key.slice(1)}`];
+                      } else if (value !== '' && value !== null) {
+                          result[key] = value;
+                      }
+                  }
+                  return result;
+              };
+              
+              const processedGlobalSettings = processSection(globalSettings);
+
+              const allScenesJson = scenes.map(scene => {
+                  const processedScene = processSection(scene);
+                  processedScene.sceneNumber = scene.sceneNumber;
+                  processedScene.durationInSeconds = 8;
+                  processedScene.objects = scene.objects.map(obj => processSection(obj));
+                  
+                  const finalSceneOutput = {
+                      renderSettings: processedGlobalSettings,
+                      sceneDetails: processedScene
+                  };
+                  
+                  return `// --- PROMPT ADEGAN ${scene.sceneNumber} ---\n` + JSON.stringify(finalSceneOutput, null, 2);
+              }).join('\n\n');
+
+              return allScenesJson;
+          }, [scenes, globalSettings]);
+
+          const handleGeneratePrompt = () => {
+            const jsonOutput = generatePromptJson();
+            setGeneratedJson(jsonOutput);
+            setMessage('Prompt JSON berhasil dibuat!');
+          };
+          
+          const copyToClipboard = () => {
+              if(!generatedJson) {
+                  setMessage('Buat prompt terlebih dahulu.');
+                  return;
+              }
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = generatedJson;
+                textarea.style.position = 'fixed'; 
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                setMessage('Prompt JSON berhasil disalin!');
+            } catch (err) {
+              console.error('Gagal menyalin: ', err);
+              setMessage('Gagal menyalin prompt.');
+            }
+          };
+
+          return (
+            <div className="text-white p-4 sm:p-6 lg:p-8">
+              <div className="max-w-5xl mx-auto bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/50 p-6 sm:p-8 lg:p-10 border border-slate-700">
+                <div className="text-center mb-10">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400 mb-2" style={{textShadow: '0 0 15px rgba(100, 255, 255, 0.5)'}}>
+                        3D Story Animation Maker
+                    </h1>
+                    <h2 className="text-xl sm:text-2xl font-semibold text-slate-300">
+                        Buat Cerita Animasi Adegan per Adegan
+                    </h2>
+                </div>
+
+                {/* --- GLOBAL SETTINGS --- */}
+                <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg mb-8">
+                    <h3 className="text-lg font-bold text-cyan-300 mb-4">Pengaturan Render Global</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                        <Dropdown label="Resolusi Output" name="outputResolution" value={globalSettings.outputResolution} onChange={handleGlobalSettingChange} options={options.outputResolution} customValue={globalSettings.customOutputResolution} onCustomChange={handleGlobalSettingChange} />
+                        <Dropdown label="Frame Rate" name="frameRate" value={globalSettings.frameRate} onChange={handleGlobalSettingChange} options={options.frameRate} />
+                    </div>
+                </div>
+
+                {/* --- SCENES MAPPING --- */}
+                {scenes.map((scene, index) => (
+                <div key={scene.id} className="p-5 bg-slate-900/50 rounded-xl border-2 border-slate-700 shadow-lg mb-8 relative">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-2xl font-bold text-purple-300">Adegan {scene.sceneNumber}</h3>
+                        {scenes.length > 1 && (
+                            <button onClick={() => removeScene(scene.id)} className="p-2 bg-red-500/80 text-white rounded-lg hover:bg-red-500 transition-colors duration-200 text-sm"><TrashIcon /></button>
+                        )}
+                    </div>
+                    
+                    <div className="p-4 bg-slate-800/40 rounded-lg mb-6 border border-slate-600">
+                        <h4 className="text-md font-semibold text-cyan-300 mb-3">Detail Adegan</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                           <Dropdown label="Gaya Visual" name="visualStyle" value={scene.visualStyle} onChange={(e) => handleSceneChange(scene.id, e)} options={options.visualStyle} customValue={scene.customVisualStyle} onCustomChange={(e) => handleSceneChange(scene.id, e)} />
+                           <Dropdown label="Tipe Lingkungan" name="environmentType" value={scene.environmentType} onChange={(e) => handleSceneChange(scene.id, e)} options={options.environmentType} customValue={scene.customEnvironmentType} onCustomChange={(e) => handleSceneChange(scene.id, e)} />
+                           <TextInput label="Deskripsi Lingkungan" name="environmentDescription" value={scene.environmentDescription} onChange={(e) => handleSceneChange(scene.id, e)} isTextarea={true} placeholder="Jelaskan detail lingkungan..." />
+                           <Dropdown label="Gaya Pencahayaan" name="lightingStyle" value={scene.lightingStyle} onChange={(e) => handleSceneChange(scene.id, e)} options={options.lightingStyle} customValue={scene.customLightingStyle} onCustomChange={(e) => handleSceneChange(scene.id, e)} />
+                           <TextInput label="Deskripsi Pencahayaan" name="lightingDescription" value={scene.lightingDescription} onChange={(e) => handleSceneChange(scene.id, e)} isTextarea={true} placeholder="Jelaskan mood dan arah cahaya..." />
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 bg-slate-800/40 rounded-lg mb-6 border border-slate-600">
+                        <h4 className="text-md font-semibold text-cyan-300 mb-3">Objek dalam Adegan</h4>
+                        {scene.objects.map((obj, objIndex) => (
+                           <div key={obj.id} className="bg-slate-900/50 p-3 rounded-lg shadow-inner mb-4 border border-slate-700">
+                             <div className="flex justify-between items-center mb-2">
+                               <h5 className="font-semibold text-purple-300 text-sm">Objek {objIndex + 1}</h5>
+                               <button onClick={() => removeObject(scene.id, obj.id)} className="p-1.5 bg-red-500/80 text-white rounded-md hover:bg-red-500 transition-colors duration-200 text-xs"><TrashIcon /></button>
+                             </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                                <Dropdown label="Tipe Objek" name="objectType" value={obj.objectType} onChange={(e) => handleObjectChange(scene.id, obj.id, e)} options={options.objectType} customValue={obj.customObjectType} onCustomChange={(e) => handleObjectChange(scene.id, obj.id, e)} />
+                                <Dropdown label="Gaya Geometri" name="geometryStyle" value={obj.geometryStyle} onChange={(e) => handleObjectChange(scene.id, obj.id, e)} options={options.geometryStyle} customValue={obj.customGeometryStyle} onCustomChange={(e) => handleObjectChange(scene.id, obj.id, e)} />
+                                <TextInput label="Deskripsi Detail Objek" name="description" value={obj.description} onChange={(e) => handleObjectChange(scene.id, obj.id, e)} isTextarea={true} placeholder="Contoh: Makhluk kecil berbulu dengan mata besar..." />
+                                <Dropdown label="Tipe Material" name="materialType" value={obj.materialType} onChange={(e) => handleObjectChange(scene.id, obj.id, e)} options={options.materialType} customValue={obj.customMaterialType} onCustomChange={(e) => handleObjectChange(scene.id, obj.id, e)} />
+                                <div className="mb-4">
+                                    <label className={labelClass}>Warna Dominan</label>
+                                    <input type="color" name="materialColor" value={obj.materialColor} onChange={(e) => handleObjectChange(scene.id, obj.id, e)} className="w-full h-10 p-1 bg-slate-800/50 border border-slate-600 rounded-lg cursor-pointer"/>
+                                </div>
+                             </div>
+                           </div>
+                        ))}
+                        <button onClick={() => addObject(scene.id)} className="flex items-center text-sm px-3 py-1.5 bg-purple-600/80 text-white rounded-lg hover:bg-purple-600 transition-colors duration-200 shadow-md font-semibold"><PlusIcon /> Tambah Objek</button>
+                    </div>
+
+                    <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-600">
+                       <h4 className="text-md font-semibold text-cyan-300 mb-3">Animasi & Kamera Adegan</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                           <TextInput label="Deskripsi Animasi (Durasi 8 Detik)" name="animationDescription" value={scene.animationDescription} onChange={(e) => handleSceneChange(scene.id, e)} isTextarea={true} placeholder="Jelaskan apa yang terjadi di adegan ini..." />
+                           <Dropdown label="Sudut Kamera" name="cameraAngle" value={scene.cameraAngle} onChange={(e) => handleSceneChange(scene.id, e)} options={options.cameraAngle} customValue={scene.customCameraAngle} onCustomChange={(e) => handleSceneChange(scene.id, e)} />
+                           <Dropdown label="Gerakan Kamera" name="cameraMovement" value={scene.cameraMovement} onChange={(e) => handleSceneChange(scene.id, e)} options={options.cameraMovement} customValue={scene.customCameraMovement} onCustomChange={(e) => handleSceneChange(scene.id, e)} />
+                           <TextInput label="Focal Length (mm)" name="focalLength" value={scene.focalLength} onChange={(e) => handleSceneChange(scene.id, e)} placeholder="Contoh: 35" />
+                       </div>
+                    </div>
+                </div>
+                ))}
+                
+                <div className="text-center">
+                    <button onClick={addScene} className="w-full sm:w-auto inline-flex justify-center items-center px-6 py-2 bg-purple-600/80 text-white rounded-lg hover:bg-purple-600 transition-colors duration-200 shadow-md font-semibold"><PlusIcon /> Tambah Adegan Baru</button>
+                </div>
+
+
+                {/* --- ACTION BUTTONS & OUTPUT --- */}
+                <div className="mt-10 border-t-2 border-slate-700 pt-8">
+                    <div className="text-center mb-6">
+                        <button onClick={handleGeneratePrompt} className="w-full sm:w-auto inline-flex justify-center items-center px-8 py-3 bg-gradient-to-r from-green-400 to-cyan-500 text-white font-bold rounded-lg hover:scale-105 transition-transform duration-200 shadow-lg shadow-cyan-500/30 text-lg">
+                            <SparklesIcon /> Buat Prompt JSON
+                        </button>
+                    </div>
+                    {message && (<div className="mt-6 p-3 bg-slate-700/50 text-cyan-300 border border-cyan-400/50 rounded-lg text-center font-medium transition-opacity duration-300">{message}</div>)}
+                </div>
+
+                {generatedJson && (
+                  <div className="mt-8 p-6 bg-slate-900/70 rounded-xl border border-slate-700 shadow-inner">
+                    <div className="flex flex-wrap justify-between items-center gap-y-3 mb-4">
+                      <h3 className="text-xl font-bold text-cyan-300">Prompt JSON per Adegan:</h3>
+                      <button onClick={copyToClipboard} className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-400 to-purple-500 text-white font-semibold rounded-lg hover:scale-105 transition-transform duration-200 shadow-lg shadow-purple-500/30 text-sm">
+                          <CopyIcon /> Salin Semua
+                      </button>
+                    </div>
+                    <pre className="whitespace-pre-wrap font-mono text-sm text-slate-200 bg-black/30 p-4 rounded-md border border-slate-600 max-h-96 overflow-y-auto">{generatedJson}</pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('prompt-maker-root'));
+    </script>
+</body>
+</html>
+
