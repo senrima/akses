@@ -18,6 +18,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
+    <script>
+        if (!sessionStorage.getItem('sessionToken')) {
+            window.location.href = 'auth.html?reason=unauthorized';
+        }
+    </script>
+    
     <style>
         /* Animasi Gradien untuk Latar Belakang */
         @keyframes gradient-animation {
@@ -380,4 +386,5 @@ Struktur JSON untuk setiap adegan dalam array adalah sebagai berikut (perhatikan
     </script>
 </body>
 </html>
+
 
