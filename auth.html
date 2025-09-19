@@ -1,39 +1,39 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>Verifikasi Akses - S-Tools.ID</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f4f6f8; }
-        .container { background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); text-align: center; width: 90%; max-width: 420px; }
-        .logo { max-width: 150px; margin-bottom: 1.5rem; }
-        h2 { color: #1e293b; margin-top: 0; margin-bottom: 0.5rem; }
-        p { color: #475569; margin-bottom: 1.5rem; line-height: 1.6; }
-        input, button { width: 100%; padding: 12px; margin-bottom: 1rem; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        input { text-align: center; }       
-        input:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        button { border: none; color: white; cursor: pointer; font-weight: 500; transition: background-color 0.2s; }
-        #emailCheckBtn { background-color: #3b82f6; }
-        .message-area { min-height: 50px; padding: 12px; border-radius: 8px; margin-top: 1rem; text-align: center; }
-        .success { border: 1px solid #16a34a; background-color: #f0fdf4; color: #15803d; }
-        .error { border: 1px solid #dc2626; background-color: #fef2f2; color: #b91c1c; }
-        .info { border: 1px solid #3b82f6; background-color: #eff6ff; color: #1e40af; }
-    </style>
+    <meta charset="UTF-8">
+    <title>Verifikasi Akses - S-Tools.ID</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f4f6f8; }
+        .container { background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); text-align: center; width: 90%; max-width: 420px; }
+        .logo { max-width: 150px; margin-bottom: 1.5rem; }
+        h2 { color: #1e293b; margin-top: 0; margin-bottom: 0.5rem; }
+        p { color: #475569; margin-bottom: 1.5rem; line-height: 1.6; }
+        input, button { width: 100%; padding: 12px; margin-bottom: 1rem; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        input { text-align: center; }       
+        input:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        button { border: none; color: white; cursor: pointer; font-weight: 500; transition: background-color 0.2s; }
+        #emailCheckBtn { background-color: #3b82f6; }
+        .message-area { min-height: 50px; padding: 12px; border-radius: 8px; margin-top: 1rem; text-align: center; }
+        .success { border: 1px solid #16a34a; background-color: #f0fdf4; color: #15803d; }
+        .error { border: 1px solid #dc2626; background-color: #fef2f2; color: #b91c1c; }
+        .info { border: 1px solid #3b82f6; background-color: #eff6ff; color: #1e40af; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <img src="https://s-tools.id/aset/stools_logo.png" alt="S-Tools ID Logo" class="logo">
-        <h2>Verifikasi Akses</h2>
-        <div id="auth-form">
-            <p>Masukkan email Anda untuk cek akses, atau gunakan link verifikasi dari dashboard Anda.</p>
-            <input type="email" id="emailInput" placeholder="Contoh: nama@email.com">
-            <button id="emailCheckBtn">Cek Akses via Email</button>
-        </div>
-        <div id="messageArea" class="message-area"></div>
-    </div>
+    <div class="container">
+        <img src="https://s-tools.id/aset/stools_logo.png" alt="S-Tools ID Logo" class="logo">
+        <h2>Verifikasi Akses</h2>
+        <div id="auth-form">
+            <p>Masukkan email Anda untuk cek akses, atau gunakan link verifikasi dari dashboard Anda.</p>
+            <input type="email" id="emailInput" placeholder="Contoh: nama@email.com">
+            <button id="emailCheckBtn">Cek Akses via Email</button>
+        </div>
+        <div id="messageArea" class="message-area"></div>
+    </div>
 
-    <script>
+  <script>
         const authUrl = 'https://akses.s-tools.id/auth/v1';
         const apiKey = 'APIKEYAKSESUNTUKVERIFIKASIOTENTIKASIPRODUKTOOLS';
 
