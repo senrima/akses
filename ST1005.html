@@ -77,6 +77,10 @@
             id: generateUniqueId(),
             role: role,
             name: role === 'Karakter Utama' ? 'Ksatria Arion' : 'Naga Ignis',
+            race: role === 'Karakter Utama' ? 'Manusia' : 'Naga Kuno',
+            physique: role === 'Karakter Utama' ? 'Atletis dan ramping' : 'Sangat besar dan berotot',
+            height: role === 'Karakter Utama' ? '185 cm' : '50 meter',
+            weight: role === 'Karakter Utama' ? '80 kg' : '20 ton',
             hair: role === 'Karakter Utama' ? 'Rambut pendek, sedikit acak-acakan, warna coklat tua' : 'Tidak ada',
             outfit: role === 'Karakter Utama' ? 'Zirah perak ringan dengan jubah biru tua dan simbol matahari keemasan di dada' : 'Sisik merah tua berkilauan seperti permata, dengan duri obsidian di punggung',
             features: role === 'Karakter Utama' ? 'Mata hijau tajam, bekas luka kecil di atas alis kanan' : 'Mata emas cair yang menyala, mengeluarkan asap tipis dari lubang hidung'
@@ -120,16 +124,19 @@
                   outputResolution: "1080p (1920x1080)",
                   frameRate: "24 fps"
               };
+              const characterDefinitions = characters.map(({ id, ...rest }) => rest);
+              
               const allScenesJson = scenes.map(scene => {
                   const sceneDetails = { ...scene, durationInSeconds: 8 };
                   const finalSceneOutput = {
                       renderSettings: renderSettings,
+                      characterDefinitions: characterDefinitions,
                       sceneDetails: sceneDetails
                   };
                   return `// --- PROMPT ADEGAN ${scene.sceneNumber} ---\n` + JSON.stringify(finalSceneOutput, null, 2);
               }).join('\n\n');
               return allScenesJson;
-          }, []);
+          }, [characters]);
 
           const handleGenerateStory = async () => {
             if (!apiKey) {
@@ -148,13 +155,13 @@
             setGeneratedJson('');
 
             const characterDescriptions = characters.map(char => 
-                `- Peran: ${char.role}, Nama: ${char.name}. DESKRIPSI WAJIB: Rambut: ${char.hair}. Pakaian: ${char.outfit}. Ciri Khas: ${char.features}.`
+                `- Peran: ${char.role}, Nama: ${char.name}. DESKRIPSI WAJIB: Ras: ${char.race}, Fisik: ${char.physique}, Tinggi: ${char.height}, Berat: ${char.weight}, Rambut: ${char.hair}, Pakaian: ${char.outfit}, Ciri Khas: ${char.features}.`
             ).join('\n');
 
             const systemPrompt = `Anda adalah sutradara animasi 3D dan penulis naskah ahli dengan gaya seperti Disney/Pixar. Tugas Anda adalah mengambil ide cerita dan deskripsi karakter dari pengguna, lalu mengubahnya menjadi rangkaian adegan animasi yang detail.
 
 ATURAN PALING KETAT DAN TIDAK BOLEH DILANGGAR:
-1.  **KONSISTENSI KARAKTER ADALAH UTAMA.** Anda HARUS menggunakan deskripsi karakter yang diberikan pengguna. Jaga penampilan (rambut, pakaian, ciri khas) setiap karakter agar SAMA PERSIS di semua adegan di mana mereka muncul. Jangan mengubah atau menambah detail penampilan mereka. Sebut nama karakter dalam deskripsi objek.
+1.  **KONSISTENSI KARAKTER ADALAH UTAMA.** Anda HARUS menggunakan deskripsi karakter yang diberikan pengguna. Jaga penampilan (Ras, Fisik, Tinggi, Berat, Rambut, Pakaian, Ciri Khas) setiap karakter agar SAMA PERSIS di semua adegan di mana mereka muncul. Jangan mengubah atau menambah detail penampilan mereka. Sebut nama karakter dalam deskripsi objek.
 2.  Buat cerita yang koheren dan pecah menjadi 3 hingga 5 adegan.
 3.  Setiap adegan HARUS berdurasi 8 detik.
 4.  Deskripsi harus hidup, fokus pada visual, emosi, dan aksi.
@@ -163,23 +170,23 @@ ATURAN PALING KETAT DAN TIDAK BOLEH DILANGGAR:
 
 Struktur JSON untuk setiap adegan dalam array adalah sebagai berikut:
 {
-  "sceneNumber": <nomor_adegan>,
-  "visualStyle": "<gaya_visual_seperti_Stylized_Toon_Shading>",
-  "environmentType": "<tipe_lingkungan_seperti_Fantasi>",
-  "environmentDescription": "<deskripsi_detail_lingkungan_dan_atmosfer>",
-  "lightingStyle": "<gaya_pencahayaan>",
-  "lightingDescription": "<deskripsi_detail_pencahayaan_dan_mood>",
+  "sceneNumber": 1,
+  "visualStyle": "Stylized Toon Shading",
+  "environmentType": "Fantasi",
+  "environmentDescription": "Sebuah hutan kuno yang lebat dengan pohon-pohon raksasa.",
+  "lightingStyle": "Volumetric Lighting",
+  "lightingDescription": "Sinar matahari menembus kanopi, menciptakan efek 'god rays'.",
   "objects": [
     {
-      "objectType": "<Karakter/Makhluk/Properti>",
-      "description": "<deskripsi_detail_penampilan_dan_kondisi_objek, HARUS SESUAI DENGAN DESKRIPSI KARAKTER YANG DIBERIKAN PENGGUNA>",
-      "materialType": "<tipe_material>"
+      "objectType": "Karakter",
+      "description": "Ksatria Arion, seorang ksatria manusia dengan zirah perak...",
+      "materialType": "Metallic"
     }
   ],
-  "animationDescription": "<deskripsi_aksi_dan_animasi_yang_terjadi_dalam_8_detik>",
-  "cameraAngle": "<sudut_kamera>",
-  "cameraMovement": "<gerakan_kamera>",
-  "focalLength": <panjang_fokus_dalam_mm>
+  "animationDescription": "Karakter utama berjalan perlahan melewati semak-semak.",
+  "cameraAngle": "Eye Level",
+  "cameraMovement": "Tracking Shot",
+  "focalLength": 50
 }`;
             
             const userPrompt = `
@@ -215,7 +222,6 @@ Struktur JSON untuk setiap adegan dalam array adalah sebagai berikut:
               const result = await response.json();
               let jsonText = result.candidates[0].content.parts[0].text;
               
-              // Clean the response to ensure it's valid JSON
               const jsonMatch = jsonText.match(/\[\s*\{[\s\S]*\}\s*\]/);
               if (jsonMatch) {
                 jsonText = jsonMatch[0];
@@ -270,14 +276,12 @@ Struktur JSON untuk setiap adegan dalam array adalah sebagai berikut:
                   </h2>
                 </div>
 
-                {/* --- INPUT SECTION --- */}
                 <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg mb-8">
                   <div className="mb-4">
                     <label className="block text-slate-300 text-sm font-bold mb-2 flex items-center"><KeyIcon/> Google Gemini API Key</label>
                     <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="Masukkan API Key Anda di sini" className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-300" />
                   </div>
                   
-                  {/* --- CHARACTER DESIGN SECTION --- */}
                    <div className="p-5 bg-slate-900/40 rounded-xl border border-slate-700 shadow-lg mb-8">
                      <h3 className="text-lg font-bold text-cyan-300 mb-4">Desain Karakter Konsisten</h3>
                      <div className="space-y-6">
@@ -290,8 +294,16 @@ Struktur JSON untuk setiap adegan dalam array adalah sebagai berikut:
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                                <TextInput label="Peran" name="role" value={char.role} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Karakter Utama/Pendukung" />
                                <TextInput label="Nama" name="name" value={char.name} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Nama Karakter" />
+                            </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 mt-4">
+                               <TextInput label="Ras" name="race" value={char.race} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Contoh: Manusia, Elf" />
+                               <TextInput label="Fisik" name="physique" value={char.physique} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Contoh: Berotot, Kurus" />
+                               <TextInput label="Tinggi" name="height" value={char.height} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Contoh: 180 cm" />
+                               <TextInput label="Berat" name="weight" value={char.weight} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Contoh: 75 kg" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 mt-4">
                                <TextInput label="Rambut (Gaya & Warna)" name="hair" value={char.hair} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Contoh: Panjang terurai, hitam legam" />
-                               <TextInput label="Pakaian (Model & Warna)" name="outfit" value={char.outfit} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Contoh: Jubah penyihir biru tua dengan bintang perak" />
+                               <TextInput label="Pakaian (Model & Warna)" name="outfit" value={char.outfit} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Contoh: Jubah penyihir biru tua" />
                             </div>
                             <TextInput label="Ciri Khas / Penampilan Detail" name="features" value={char.features} onChange={(e) => handleCharacterChange(char.id, e)} placeholder="Contoh: Mata bersinar, membawa tongkat kayu" />
                           </div>
@@ -309,11 +321,9 @@ Struktur JSON untuk setiap adegan dalam array adalah sebagai berikut:
                   </button>
                 </div>
 
-                {/* --- MESSAGES --- */}
                 {error && (<div className="my-6 p-3 bg-red-900/50 text-red-300 border border-red-500/50 rounded-lg text-center font-medium">{error}</div>)}
                 {message && (<div className="my-6 p-3 bg-slate-700/50 text-cyan-300 border border-cyan-400/50 rounded-lg text-center font-medium">{message}</div>)}
 
-                {/* --- GENERATED SCENES PREVIEW --- */}
                 {generatedScenes.length > 0 && (
                     <div className="mt-8">
                         <h3 className="text-2xl font-bold text-purple-300 mb-4 text-center">Hasil Alur Cerita</h3>
@@ -330,8 +340,6 @@ Struktur JSON untuk setiap adegan dalam array adalah sebagai berikut:
                     </div>
                 )}
 
-
-                {/* --- JSON OUTPUT --- */}
                 {generatedJson && (
                   <div className="mt-10 pt-8 border-t-2 border-slate-700">
                     <div className="flex flex-wrap justify-between items-center gap-y-3 mb-4">
